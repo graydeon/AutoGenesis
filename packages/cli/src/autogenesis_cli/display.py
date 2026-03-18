@@ -1,0 +1,1 @@
+"""Rich console output formatting."""

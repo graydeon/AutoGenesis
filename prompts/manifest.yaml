@@ -1,0 +1,15 @@
+prompts:
+  core:
+    active_version: "1.0.0"
+    active_environment: "dev"
+    versions:
+      "1.0.0":
+        checksum: ""
+        created_at: "2026-03-17T00:00:00Z"
+  constitution:
+    active_version: "1.0.0"
+    locked: true
+    versions:
+      "1.0.0":
+        checksum: ""
+        created_at: "2026-03-17T00:00:00Z"

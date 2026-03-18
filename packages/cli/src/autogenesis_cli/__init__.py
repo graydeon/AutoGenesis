@@ -1,0 +1,1 @@
+"""AutoGenesis CLI application."""
