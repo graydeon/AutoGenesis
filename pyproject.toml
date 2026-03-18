@@ -6,7 +6,7 @@ requires-python = ">=3.11"
 license = "MIT"
 readme = "README.md"
 
-[dependency-groups]
+[project.optional-dependencies]
 dev = [
     "pre-commit>=4.0",
     "pytest>=8.0",
@@ -14,6 +14,14 @@ dev = [
     "pytest-cov>=5.0",
     "ruff>=0.8",
     "mypy>=1.13",
+    "autogenesis-core",
+    "autogenesis-tools",
+    "autogenesis-tokens",
+    "autogenesis-optimizer",
+    "autogenesis-security",
+    "autogenesis-mcp",
+    "autogenesis-plugins",
+    "autogenesis-cli",
 ]
 
 [tool.uv.workspace]
@@ -51,6 +59,18 @@ python_version = "3.11"
 strict = true
 warn_return_any = true
 disallow_untyped_defs = true
+explicit_package_bases = true
+mypy_path = [
+    "packages/core/src",
+    "packages/tools/src",
+    "packages/tokens/src",
+    "packages/optimizer/src",
+    "packages/security/src",
+    "packages/mcp/src",
+    "packages/plugins/src",
+    "packages/cli/src",
+]
+exclude = ["tests/", "packages/*/tests/"]
 
 [tool.pytest.ini_options]
 testpaths = ["packages/*/tests", "tests"]

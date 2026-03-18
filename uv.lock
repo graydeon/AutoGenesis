@@ -208,8 +208,16 @@ name = "autogenesis"
 version = "0.1.0"
 source = { virtual = "." }
 
-[package.dev-dependencies]
+[package.optional-dependencies]
 dev = [
+    { name = "autogenesis-cli" },
+    { name = "autogenesis-core" },
+    { name = "autogenesis-mcp" },
+    { name = "autogenesis-optimizer" },
+    { name = "autogenesis-plugins" },
+    { name = "autogenesis-security" },
+    { name = "autogenesis-tokens" },
+    { name = "autogenesis-tools" },
     { name = "mypy" },
     { name = "pre-commit" },
     { name = "pytest" },
@@ -219,16 +227,23 @@ dev = [
 ]
 
 [package.metadata]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "mypy", specifier = ">=1.13" },
-    { name = "pre-commit", specifier = ">=4.0" },
-    { name = "pytest", specifier = ">=8.0" },
-    { name = "pytest-asyncio", specifier = ">=0.24" },
-    { name = "pytest-cov", specifier = ">=5.0" },
-    { name = "ruff", specifier = ">=0.8" },
+requires-dist = [
+    { name = "autogenesis-cli", marker = "extra == 'dev'", editable = "packages/cli" },
+    { name = "autogenesis-core", marker = "extra == 'dev'", editable = "packages/core" },
+    { name = "autogenesis-mcp", marker = "extra == 'dev'", editable = "packages/mcp" },
+    { name = "autogenesis-optimizer", marker = "extra == 'dev'", editable = "packages/optimizer" },
+    { name = "autogenesis-plugins", marker = "extra == 'dev'", editable = "packages/plugins" },
+    { name = "autogenesis-security", marker = "extra == 'dev'", editable = "packages/security" },
+    { name = "autogenesis-tokens", marker = "extra == 'dev'", editable = "packages/tokens" },
+    { name = "autogenesis-tools", marker = "extra == 'dev'", editable = "packages/tools" },
+    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.13" },
+    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.24" },
+    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8" },
 ]
+provides-extras = ["dev"]
 
 [[package]]
 name = "autogenesis-cli"
