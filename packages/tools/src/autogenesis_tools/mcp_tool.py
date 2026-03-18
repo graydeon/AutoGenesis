@@ -37,7 +37,7 @@ class MCPCallTool(Tool):
     async def execute(self, arguments: dict[str, Any]) -> str:
         """Invoke MCP tool via lazy import of MCP client."""
         try:
-            from autogenesis_mcp.client import MCPClient  # type: ignore[attr-defined]
+            from autogenesis_mcp.client import MCPClient
         except ImportError:
             return "Error: MCP package not available"
 
