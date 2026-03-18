@@ -106,7 +106,7 @@ jobs:
 
       - name: Run integration tests
         run: |
-          if [ -d "tests/integration" ]; then
+          if [ -d "tests/integration" ] && find tests/integration -name "test_*.py" | grep -q .; then
             uv run pytest tests/integration/ -v
           else
             echo "No integration tests found, skipping."
@@ -171,7 +171,7 @@ jobs:
           uv venv /tmp/test-venv
           for whl in dist/*.whl; do
             echo "Installing ${whl}..."
-            /tmp/test-venv/bin/pip install "${whl}" --force-reinstall --no-deps
+            uv pip install "${whl}" --force-reinstall --no-deps --python /tmp/test-venv/bin/python
           done
           echo "All wheels install successfully."
 
