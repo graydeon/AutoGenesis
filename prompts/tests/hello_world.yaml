@@ -1,0 +1,4 @@
+input: "Say hello"
+expected_contains: "hello"
+metrics:
+  task_completion: 5

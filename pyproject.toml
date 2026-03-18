@@ -1,0 +1,50 @@
+[project]
+name = "autogenesis"
+version = "0.1.0"
+description = "The token-efficient agent framework. CLI-first. Self-improving. Every token counts."
+requires-python = ">=3.11"
+license = "MIT"
+readme = "README.md"
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.uv.sources]
+autogenesis-core = { workspace = true }
+autogenesis-tools = { workspace = true }
+autogenesis-tokens = { workspace = true }
+autogenesis-optimizer = { workspace = true }
+autogenesis-security = { workspace = true }
+autogenesis-mcp = { workspace = true }
+autogenesis-plugins = { workspace = true }
+autogenesis-cli = { workspace = true }
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "D1",
+    "ANN1",
+    "COM812",
+    "ISC001",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "D", "ANN"]
+"**/tests/**/*.py" = ["S101", "D", "ANN"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["packages/*/tests", "tests"]
+asyncio_mode = "auto"
+markers = [
+    "e2e: end-to-end tests requiring real LLM API keys",
+]
