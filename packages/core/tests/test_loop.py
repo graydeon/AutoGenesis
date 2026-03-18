@@ -9,7 +9,7 @@ import pytest
 from autogenesis_core.config import ModelConfig, TokenConfig
 from autogenesis_core.loop import AgentLoop, AgentLoopResult
 from autogenesis_core.models import Message, ModelTier, TokenUsage, ToolCall
-from autogenesis_core.router import CompletionResult
+from autogenesis_core.router import CompletionResult, TokenBudgetExceededError
 
 
 def _text_result(content: str = "Done!", tokens: int = 10) -> CompletionResult:
@@ -102,8 +102,6 @@ class TestAgentLoop:
 
     async def test_token_budget_stops_cleanly(self, loop, mock_router, mock_tool_executor):
         # Return tool calls but budget will be exceeded
-        from autogenesis_core.router import TokenBudgetExceededError
-
         call_count = 0
 
         async def budget_exceeding(*args, **kwargs):
