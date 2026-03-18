@@ -1,6 +1,6 @@
 [project]
 name = "autogenesis"
-version = "0.1.0"
+version = "0.1.1"
 description = "The token-efficient agent framework. CLI-first. Self-improving. Every token counts."
 requires-python = ">=3.11"
 license = "MIT"
