@@ -105,7 +105,12 @@ jobs:
         run: uv sync --all-extras
 
       - name: Run integration tests
-        run: uv run pytest tests/integration/ -v
+        run: |
+          if [ -d "tests/integration" ]; then
+            uv run pytest tests/integration/ -v
+          else
+            echo "No integration tests found, skipping."
+          fi
 
   security-check:
     name: Security Check
@@ -125,7 +130,9 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: uv sync --all-extras
+        run: |
+          uv sync --all-extras
+          uv pip install pip-audit
 
       - name: Dependency vulnerability scan
         run: uv run pip-audit
@@ -152,9 +159,10 @@ jobs:
 
       - name: Build all packages
         run: |
-          for pkg in packages/*/; do
-            echo "::group::Building ${pkg}"
-            uv build --package "$(basename "${pkg}")" --out-dir dist/
+          for pkg in packages/*/pyproject.toml; do
+            pkg_name=$(python3 -c "import tomllib; print(tomllib.load(open('$pkg','rb'))['project']['name'])")
+            echo "::group::Building ${pkg_name}"
+            uv build --package "${pkg_name}" --out-dir dist/
             echo "::endgroup::"
           done
 

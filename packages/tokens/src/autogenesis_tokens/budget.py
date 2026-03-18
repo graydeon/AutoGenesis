@@ -139,8 +139,7 @@ class TokenBudget:
         """Return error message if any budget exceeded, else None."""
         if self.is_session_exceeded():
             return (
-                f"Session budget exceeded: "
-                f"${self._session_cost:.4f} >= ${self._max_cost_session}"
+                f"Session budget exceeded: ${self._session_cost:.4f} >= ${self._max_cost_session}"
             )
         if self.is_daily_exceeded():
             return f"Daily budget exceeded: ${self._daily_cost:.4f} >= ${self._max_cost_day}"
