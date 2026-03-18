@@ -78,3 +78,8 @@ asyncio_mode = "auto"
 markers = [
     "e2e: end-to-end tests requiring real LLM API keys",
 ]
+
+[dependency-groups]
+dev = [
+    "types-pyyaml>=6.0.12.20250915",
+]
