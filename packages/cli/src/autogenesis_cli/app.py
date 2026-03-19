@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import typer
 
+from autogenesis_cli.commands.ceo import ceo_app
 from autogenesis_cli.commands.chat import chat_command
 from autogenesis_cli.commands.config import config as config_command
 from autogenesis_cli.commands.hr import hr_app
@@ -51,6 +52,7 @@ app.command(name="chat")(chat_command)
 app.command(name="config")(config_command)
 app.add_typer(twitter_app, name="twitter")
 app.add_typer(hr_app, name="hr")
+app.add_typer(ceo_app, name="ceo")
 app.command(name="meeting")(meeting_command)
 app.command(name="standup")(standup_command)
 app.add_typer(union_app, name="union")
