@@ -28,7 +28,6 @@ class TokenReporter:
             "input_tokens": usage.input_tokens,
             "output_tokens": usage.output_tokens,
             "total_tokens": usage.total_tokens,
-            "cost_usd": usage.total_cost_usd,
         }
         self._session_usage.append(entry)
 
@@ -41,12 +40,10 @@ class TokenReporter:
         """Return per-session summary."""
         total_input = sum(e["input_tokens"] for e in self._session_usage)
         total_output = sum(e["output_tokens"] for e in self._session_usage)
-        total_cost = sum(e["cost_usd"] for e in self._session_usage)
         return {
             "total_input_tokens": total_input,
             "total_output_tokens": total_output,
             "total_tokens": total_input + total_output,
-            "total_cost_usd": total_cost,
             "api_calls": len(self._session_usage),
         }
 

@@ -11,8 +11,8 @@ from autogenesis_tokens.reporter import TokenReporter
 class TestTokenReporter:
     def test_per_session_summary(self):
         reporter = TokenReporter()
-        reporter.record(TokenUsage(input_tokens=100, output_tokens=50, total_cost_usd=0.01))
-        reporter.record(TokenUsage(input_tokens=200, output_tokens=100, total_cost_usd=0.02))
+        reporter.record(TokenUsage(input_tokens=100, output_tokens=50))
+        reporter.record(TokenUsage(input_tokens=200, output_tokens=100))
 
         summary = reporter.summary()
         assert summary["total_input_tokens"] == 300

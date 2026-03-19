@@ -3,12 +3,22 @@
 from __future__ import annotations
 
 import hashlib
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path  # noqa: TC003
 from typing import Any
 
 import yaml
-from autogenesis_core.models import PromptVersion
+
+
+@dataclass
+class PromptVersion:
+    """A versioned prompt template."""
+
+    version: str
+    content: str
+    checksum: str
+    parent_version: str | None = None
 
 
 class PromptVersionManager:

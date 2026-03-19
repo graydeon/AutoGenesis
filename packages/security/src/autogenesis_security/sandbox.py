@@ -3,8 +3,24 @@
 from __future__ import annotations
 
 import asyncio
+from abc import ABC, abstractmethod
 
-from autogenesis_core.sandbox import SandboxProvider
+
+class SandboxProvider(ABC):
+    """Abstract base for sandbox execution providers."""
+
+    @abstractmethod
+    async def execute(
+        self,
+        command: str,
+        timeout: float = 30.0,  # noqa: ASYNC109
+        cwd: str | None = None,
+    ) -> tuple[str, int]:
+        """Execute a command. Returns (output, exit_code)."""
+
+    @abstractmethod
+    async def cleanup(self) -> None:
+        """Release any resources held by the sandbox."""
 
 
 class SubprocessSandbox(SandboxProvider):

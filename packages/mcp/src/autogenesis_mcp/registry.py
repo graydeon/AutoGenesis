@@ -7,8 +7,6 @@ from typing import TYPE_CHECKING, Any
 import structlog
 
 if TYPE_CHECKING:
-    from autogenesis_core.config import MCPConfig
-
     from autogenesis_mcp.client import MCPClient
 
 logger = structlog.get_logger()
@@ -17,7 +15,7 @@ logger = structlog.get_logger()
 class MCPRegistry:
     """Registry of MCP servers with allowlist enforcement and connection pooling."""
 
-    def __init__(self, config: MCPConfig | None = None) -> None:
+    def __init__(self, config: object = None) -> None:
         self._allowlist: set[str] = set()
         self._servers: dict[str, dict[str, Any]] = {}
         self._clients: dict[str, MCPClient] = {}
