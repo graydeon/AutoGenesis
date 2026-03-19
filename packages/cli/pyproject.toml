@@ -7,11 +7,6 @@ license = "MIT"
 dependencies = [
     "autogenesis-core",
     "autogenesis-tools",
-    "autogenesis-tokens",
-    "autogenesis-optimizer",
-    "autogenesis-security",
-    "autogenesis-mcp",
-    "autogenesis-plugins",
     "typer>=0.12",
     "rich>=13.0",
 ]

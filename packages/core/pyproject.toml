@@ -5,11 +5,13 @@ description = "AutoGenesis core runtime: agent loop, state, models, config, even
 requires-python = ">=3.11"
 license = "MIT"
 dependencies = [
-    "pydantic>=2.0,<3.0",
-    "pydantic-settings>=2.0,<3.0",
-    "pyyaml>=6.0,<7.0",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "pyyaml>=6.0",
     "structlog>=24.0",
-    "litellm>=1.0",
+    "httpx>=0.28",
+    "httpx-sse>=0.4",
+    "PyJWT>=2.8",
 ]
 
 [project.optional-dependencies]
