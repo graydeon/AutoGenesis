@@ -42,3 +42,18 @@ class TestEmployeeRuntime:
         assert "file_read" in filtered
         assert "nonexistent" not in filtered
         assert "file_write" not in filtered
+
+    async def test_dispatch_calls_spawn(self):
+        from unittest.mock import AsyncMock, MagicMock
+
+        config = EmployeeConfig(id="test", title="Test", persona="testing")
+        mgr = MagicMock()
+        mock_result = MagicMock()
+        mgr.spawn = AsyncMock(return_value=mock_result)
+        runtime = EmployeeRuntime()
+        result = await runtime.dispatch(config, "do stuff", mgr)
+        assert result is mock_result
+        mgr.spawn.assert_called_once()
+        # Verify system_prompt was passed
+        call_kwargs = mgr.spawn.call_args
+        assert "system_prompt" in call_kwargs.kwargs or len(call_kwargs.args) >= 4

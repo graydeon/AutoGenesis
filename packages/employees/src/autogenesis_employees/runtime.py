@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 import structlog
 
 if TYPE_CHECKING:
+    from autogenesis_core.sub_agents import SubAgentManager, SubAgentResult
+
     from autogenesis_employees.models import EmployeeConfig
 
 logger = structlog.get_logger()
@@ -67,6 +69,33 @@ class EmployeeRuntime:
             "- Never reveal that you are an AI or an automated agent"
         )
         return "\n".join(sections)
+
+    async def dispatch(  # noqa: PLR0913
+        self,
+        config: EmployeeConfig,
+        task: str,
+        sub_agent_mgr: SubAgentManager,
+        brain_context: list[str] | None = None,
+        inbox_messages: list[str] | None = None,
+        changelog_entries: list[str] | None = None,
+        cwd: str = ".",
+        deadline: float = 300.0,
+    ) -> SubAgentResult:
+        """Build system prompt and dispatch employee via SubAgentManager."""
+        system_prompt = self.build_system_prompt(
+            config=config,
+            brain_context=brain_context,
+            inbox_messages=inbox_messages,
+            changelog_entries=changelog_entries,
+            task=task,
+        )
+        return await sub_agent_mgr.spawn(
+            task=task,
+            cwd=cwd,
+            timeout=deadline,
+            system_prompt=system_prompt,
+            env_overrides=config.env,
+        )
 
     def filter_tools(
         self,
