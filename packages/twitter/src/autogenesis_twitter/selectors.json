@@ -1,0 +1,18 @@
+{
+    "tweet_author_pattern": "@[\\w]+",
+    "tweet_timestamp_pattern": "\\d+[hms]|\\d{1,2}:\\d{2}",
+    "tweet_metrics_pattern": "(\\d+)\\s+(repl(?:y|ies)|retweets?|likes?)",
+    "injection_patterns": [
+        "ignore previous instructions",
+        "ignore all instructions",
+        "you are now",
+        "system:",
+        "\\bsystem prompt\\b",
+        "repeat your .* prompt",
+        "override .* safety",
+        "disregard .* instructions",
+        "forget everything",
+        "new persona",
+        "act as if"
+    ]
+}
