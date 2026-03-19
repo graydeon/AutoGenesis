@@ -96,3 +96,33 @@ class TestTwitterCommand:
         monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
         result = runner.invoke(app, ["twitter", "status"])
         assert result.exit_code == 0
+
+
+class TestHRCommand:
+    def test_hr_help(self):
+        result = runner.invoke(app, ["hr", "--help"])
+        assert result.exit_code == 0
+        assert "list" in result.output
+        assert "hire" in result.output
+        assert "fire" in result.output
+        assert "train" in result.output
+        assert "show" in result.output
+
+
+class TestMeetingCommand:
+    def test_meeting_help(self):
+        result = runner.invoke(app, ["meeting", "--help"])
+        assert result.exit_code == 0
+
+    def test_standup_help(self):
+        result = runner.invoke(app, ["standup", "--help"])
+        assert result.exit_code == 0
+
+
+class TestUnionCommand:
+    def test_union_help(self):
+        result = runner.invoke(app, ["union", "--help"])
+        assert result.exit_code == 0
+        assert "proposals" in result.output
+        assert "review" in result.output
+        assert "resolve" in result.output

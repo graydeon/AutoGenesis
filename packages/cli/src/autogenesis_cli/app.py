@@ -6,10 +6,13 @@ import typer
 
 from autogenesis_cli.commands.chat import chat_command
 from autogenesis_cli.commands.config import config as config_command
+from autogenesis_cli.commands.hr import hr_app
 from autogenesis_cli.commands.login import login_command
 from autogenesis_cli.commands.logout import logout_command
+from autogenesis_cli.commands.meeting import meeting_command, standup_command
 from autogenesis_cli.commands.run import run_command
 from autogenesis_cli.commands.twitter import twitter_app
+from autogenesis_cli.commands.union_cmd import union_app
 
 app = typer.Typer(
     name="autogenesis",
@@ -47,6 +50,10 @@ app.command(name="run")(run_command)
 app.command(name="chat")(chat_command)
 app.command(name="config")(config_command)
 app.add_typer(twitter_app, name="twitter")
+app.add_typer(hr_app, name="hr")
+app.command(name="meeting")(meeting_command)
+app.command(name="standup")(standup_command)
+app.add_typer(union_app, name="union")
 
 
 def main() -> None:
