@@ -88,6 +88,7 @@ exclude = ["tests/", "packages/*/tests/"]
 [tool.pytest.ini_options]
 testpaths = ["packages/*/tests", "tests"]
 asyncio_mode = "auto"
+addopts = "--import-mode=importlib"
 markers = [
     "e2e: end-to-end tests requiring real LLM API keys",
 ]
