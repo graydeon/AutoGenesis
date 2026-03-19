@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import threading
+import time
 from typing import Any
 
 from rich.console import Console
@@ -9,9 +11,11 @@ from rich.live import Live
 from rich.table import Table
 from rich.text import Text
 
+_SPINNER_FRAMES = ["   ", ".  ", ".. ", "..."]
+
 
 class AgentLiveDisplay:
-    """Real-time dashboard of active sub-agents."""
+    """Real-time dashboard of active sub-agents with animated spinners."""
 
     def __init__(self) -> None:
         self._agents: dict[str, dict[str, Any]] = {}
@@ -19,32 +23,48 @@ class AgentLiveDisplay:
         self._console = Console(stderr=True)
         self._live: Live | None = None
         self._phase = ""
-        self._tick = 0
+        self._frame = 0
+        self._ticker: threading.Thread | None = None
+        self._running = False
 
     def start(self) -> None:
-        """Start the live display."""
+        """Start the live display with background animation ticker."""
         self._live = Live(
             self._render(),
             console=self._console,
-            refresh_per_second=4,
+            refresh_per_second=8,
             transient=False,
         )
         self._live.start()
+        self._running = True
+        self._ticker = threading.Thread(target=self._animation_loop, daemon=True)
+        self._ticker.start()
+
+    def _animation_loop(self) -> None:
+        """Background thread that ticks the animation forward."""
+        while self._running:
+            time.sleep(0.25)
+            self._frame += 1
+            self._refresh()
 
     def stop(self) -> None:
-        """Stop the live display."""
+        """Stop the live display and animation."""
+        self._running = False
+        if self._ticker:
+            self._ticker.join(timeout=1)
+            self._ticker = None
         if self._live:
             self._live.stop()
             self._live = None
 
     def set_phase(self, phase: str) -> None:
-        """Set the current orchestration phase (e.g., 'Decomposing goal...')."""
+        """Set the current orchestration phase."""
         self._phase = phase
         self._refresh()
 
     def agent_start(self, label: str, task: str) -> None:
         """Mark an agent as active with its current task."""
-        self._agents[label] = {"task": task, "status": "working", "detail": ""}
+        self._agents[label] = {"task": task, "detail": ""}
         self._refresh()
 
     def agent_update(self, label: str, detail: str) -> None:
@@ -60,11 +80,8 @@ class AgentLiveDisplay:
             self._completed.append({"label": label, "task": entry["task"], "result": result})
             self._refresh()
 
-    def _dots(self) -> str:
-        """Animated dots."""
-        self._tick += 1
-        n = (self._tick % 3) + 1
-        return "." * n + " " * (3 - n)
+    def _spinner(self) -> str:
+        return _SPINNER_FRAMES[self._frame % len(_SPINNER_FRAMES)]
 
     def _render(self) -> Table:
         """Render the current state as a Rich Table."""
@@ -75,34 +92,35 @@ class AgentLiveDisplay:
             box=None,
             expand=True,
         )
-        table.add_column("indicator", width=3, no_wrap=True)
+        table.add_column("indicator", width=4, no_wrap=True)
         table.add_column("label", width=22, no_wrap=True)
         table.add_column("info", ratio=1)
 
+        spinner = self._spinner()
+
         if self._phase:
             table.add_row(
-                Text(self._dots(), style="bold yellow"),
+                Text(spinner, style="bold yellow"),
                 Text("CEO", style="bold yellow"),
                 Text(self._phase, style="yellow"),
             )
 
         for label, info in self._agents.items():
             detail = info["detail"] or info["task"]
-            # Truncate to fit
             if len(detail) > 80:  # noqa: PLR2004
                 detail = detail[:77] + "..."
             table.add_row(
-                Text(self._dots(), style="bold cyan"),
+                Text(spinner, style="bold cyan"),
                 Text(label, style="bold cyan"),
                 Text(detail, style="dim"),
             )
 
-        for entry in self._completed[-5:]:  # Show last 5 completed
+        for entry in self._completed[-5:]:
             result_text = entry["result"]
             if len(result_text) > 60:  # noqa: PLR2004
                 result_text = result_text[:57] + "..."
             table.add_row(
-                Text(" \u2713 ", style="bold green"),
+                Text(" \u2713  ", style="bold green"),
                 Text(entry["label"], style="green"),
                 Text(result_text, style="dim green"),
             )
