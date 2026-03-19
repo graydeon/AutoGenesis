@@ -35,6 +35,14 @@ class EventType(StrEnum):
     AUTH_TOKEN_REFRESH = "auth.token.refresh"  # noqa: S105
     AUTH_LOGIN_SUCCESS = "auth.login.success"
     AUTH_LOGIN_FAILED = "auth.login.failed"
+    TWITTER_SESSION_START = "twitter.session.start"
+    TWITTER_SESSION_END = "twitter.session.end"
+    TWITTER_BROWSE_CYCLE = "twitter.browse.cycle"
+    TWITTER_DRAFT_CREATED = "twitter.draft.created"
+    TWITTER_DRAFT_POSTED = "twitter.draft.posted"
+    TWITTER_GUARDRAIL_VIOLATION = "twitter.guardrail.violation"
+    TWITTER_INJECTION_BLOCKED = "twitter.injection.blocked"
+    TWITTER_AUTH_REQUIRED = "twitter.auth.required"
 
 
 class Event(BaseModel):

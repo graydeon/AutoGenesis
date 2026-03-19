@@ -6,6 +6,7 @@ from autogenesis_core.config import (
     AutoGenesisConfig,
     CodexConfig,
     CredentialProviderType,
+    TwitterConfig,
     load_config,
 )
 
@@ -37,6 +38,25 @@ class TestAutoGenesisConfig:
         """TierConfig and ModelConfig are removed."""
         cfg = AutoGenesisConfig()
         assert not hasattr(cfg, "models")
+
+
+class TestTwitterConfig:
+    def test_defaults(self):
+        cfg = TwitterConfig()
+        assert cfg.enabled is False
+        assert cfg.active_hours_start == "09:00"
+        assert cfg.gateway_url == "http://127.0.0.1:1456"
+
+    def test_in_root_config(self):
+        cfg = AutoGenesisConfig()
+        assert isinstance(cfg.twitter, TwitterConfig)
+        assert cfg.twitter.enabled is False
+
+    def test_env_override(self, monkeypatch, tmp_path):
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+        monkeypatch.setenv("AUTOGENESIS_TWITTER__ENABLED", "true")
+        cfg = load_config()
+        assert cfg.twitter.enabled is True
 
 
 class TestLoadConfig:

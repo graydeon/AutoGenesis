@@ -6,7 +6,7 @@ from autogenesis_core.events import Event, EventBus, EventType, get_event_bus
 
 
 class TestEventType:
-    def test_all_15_event_types_exist(self):
+    def test_all_23_event_types_exist(self):
         expected = {
             "loop.execution.start",
             "loop.execution.iteration",
@@ -23,10 +23,18 @@ class TestEventType:
             "auth.token.refresh",
             "auth.login.success",
             "auth.login.failed",
+            "twitter.session.start",
+            "twitter.session.end",
+            "twitter.browse.cycle",
+            "twitter.draft.created",
+            "twitter.draft.posted",
+            "twitter.guardrail.violation",
+            "twitter.injection.blocked",
+            "twitter.auth.required",
         }
         actual = {e.value for e in EventType}
         assert actual == expected
-        assert len(EventType) == 15
+        assert len(EventType) == 23
 
 
 class TestEvent:

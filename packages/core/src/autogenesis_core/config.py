@@ -48,12 +48,28 @@ class SecurityConfig(BaseModel):
     guardrails_enabled: bool = True
 
 
+class TwitterConfig(BaseModel):
+    """Twitter agent persona configuration."""
+
+    enabled: bool = False
+    active_hours_start: str = "09:00"
+    active_hours_end: str = "17:00"
+    timezone: str = "America/New_York"
+    session_interval_minutes: int = 30
+    max_drafts_per_session: int = 10
+    queue_path: str = ""
+    worldview_path: str = ""
+    gateway_url: str = "http://127.0.0.1:1456"
+    selectors_path: str = ""
+
+
 class AutoGenesisConfig(BaseModel):
     """Root configuration model."""
 
     codex: CodexConfig = Field(default_factory=CodexConfig)
     tokens: TokenConfig = Field(default_factory=TokenConfig)
     security: SecurityConfig = Field(default_factory=SecurityConfig)
+    twitter: TwitterConfig = Field(default_factory=TwitterConfig)
     credential_provider: CredentialProviderType = CredentialProviderType.ENV
     credential_path: str = ""  # for file/gateway providers
 
