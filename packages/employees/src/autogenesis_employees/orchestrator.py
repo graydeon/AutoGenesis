@@ -138,6 +138,15 @@ class CEOOrchestrator:
 
     # --- LLM calls ---
 
+    @staticmethod
+    def _strip_codex_boilerplate(output: str) -> str:
+        """Strip Codex CLI banner/echo, keeping only the agent response."""
+        marker = "\ncodex\n"
+        idx = output.rfind(marker)
+        if idx != -1:
+            return output[idx + len(marker) :]
+        return output
+
     async def _codex_call(
         self, instructions: str, user_message: str, label: str = "ceo-reasoning"
     ) -> str:
@@ -150,7 +159,7 @@ class CEOOrchestrator:
             system_prompt=instructions,
             label=label,
         )
-        return result.output
+        return self._strip_codex_boilerplate(result.output)
 
     async def _codex_call_json(
         self, instructions: str, user_message: str, label: str = "ceo-reasoning"
@@ -270,7 +279,8 @@ class CEOOrchestrator:
             env_overrides=env_overrides,
             label=employee_id,
         )
-        return result.output, result.exit_code, result.success
+        output = self._strip_codex_boilerplate(result.output)
+        return output, result.exit_code, result.success
 
     # --- Public API ---
 

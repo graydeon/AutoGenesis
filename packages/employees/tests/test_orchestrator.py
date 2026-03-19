@@ -10,6 +10,35 @@ import pytest
 from autogenesis_employees.orchestrator import CEOOrchestrator
 
 
+class TestStripCodexBoilerplate:
+    def test_strips_banner_and_echo(self):
+        raw = (
+            "OpenAI Codex v0.114.0 (research preview)\n"
+            "--------\n"
+            "workdir: /home/gray/dev/AutoGenesis\n"
+            "user\n"
+            'Respond with JSON: [{"description": "..."}]\n'
+            "mcp: excel ready\n"
+            "codex\n"
+            '[{"description": "Build the API", "rationale": "needed"}]\n'
+            "tokens used\n"
+            "5000\n"
+        )
+        result = CEOOrchestrator._strip_codex_boilerplate(raw)
+        assert result.startswith('[{"description": "Build the API"')
+        assert "OpenAI Codex" not in result
+        assert "user" not in result
+
+    def test_no_marker_returns_full_output(self):
+        raw = '{"employee_id": "cto"}'
+        assert CEOOrchestrator._strip_codex_boilerplate(raw) == raw
+
+    def test_uses_last_marker(self):
+        raw = "codex\nfirst response\ncodex\nsecond response\n"
+        result = CEOOrchestrator._strip_codex_boilerplate(raw)
+        assert result == "second response\n"
+
+
 def _mock_spawn_success(output: str = "Done"):
     result = MagicMock()
     result.output = output
