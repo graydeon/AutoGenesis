@@ -64,7 +64,7 @@ class AgentLoop:
         async for event in self._client.create_response(
             messages=messages,
             instructions=self._instructions,
-            tools=self._tool_definitions if self._tool_definitions else None,
+            tools=self._tool_definitions or None,
         ):
             if event.event_type == ResponseEventType.OUTPUT_TEXT_DELTA:
                 delta = event.data.get("delta", "")

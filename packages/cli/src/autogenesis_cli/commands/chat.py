@@ -27,6 +27,8 @@ async def _chat_async(full_auto: bool, model: str) -> None:
     from autogenesis_core.config import load_config
     from autogenesis_core.credentials import EnvCredentialProvider
     from autogenesis_core.loop import AgentLoop
+    from autogenesis_core.models import ToolCall
+    from autogenesis_tools.base import Tool
     from autogenesis_tools.bash import BashTool
     from autogenesis_tools.filesystem import (
         FileEditTool,
@@ -45,7 +47,7 @@ async def _chat_async(full_auto: bool, model: str) -> None:
     client = CodexClient(credential_provider=provider, config=client_config)
 
     registry = ToolRegistry()
-    for tool_cls in [
+    tool_classes: list[type[Tool]] = [
         BashTool,
         FileReadTool,
         FileWriteTool,
@@ -54,7 +56,8 @@ async def _chat_async(full_auto: bool, model: str) -> None:
         GrepTool,
         ListDirTool,
         ThinkTool,
-    ]:
+    ]
+    for tool_cls in tool_classes:
         registry.register(tool_cls())
 
     instructions = (_PROMPTS_DIR / "default.txt").read_text()
@@ -74,16 +77,16 @@ async def _chat_async(full_auto: bool, model: str) -> None:
 
             tool_defs = registry.get_definitions_for_context()
 
-            async def tool_executor(tc: object) -> str:
-                tool = registry.get(tc.name)  # type: ignore[attr-defined]
+            async def tool_executor(tc: ToolCall) -> str:
+                tool = registry.get(tc.name)
                 if not tool:
-                    return f"Unknown tool: {tc.name}"  # type: ignore[attr-defined]
-                if approval.should_prompt(tc.name) and not approval.prompt_user(  # type: ignore[attr-defined]
+                    return f"Unknown tool: {tc.name}"
+                if approval.should_prompt(tc.name) and not approval.prompt_user(
                     tc.name,
-                    tc.arguments,  # type: ignore[attr-defined]
+                    tc.arguments,
                 ):
                     return "Tool execution denied by user"
-                return await tool.execute(tc.arguments)  # type: ignore[attr-defined]
+                return await tool.execute(tc.arguments)
 
             loop = AgentLoop(
                 client=client,

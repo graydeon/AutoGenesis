@@ -56,7 +56,7 @@ ignore = [
 "**/tools/src/**/*.py" = ["ASYNC2"]  # pathlib/input in async is intentional for tool implementations
 "**/mcp_tool.py" = ["PLC0415"]  # lazy imports intentional
 "**/mcp/**/*.py" = ["PLC0415"]  # lazy imports for MCP SDK
-"**/cli/**/*.py" = ["FBT", "PLC0415"]  # Typer requires bool args and lazy imports
+"**/cli/**/*.py" = ["FBT", "PLC0415", "TC002"]  # Typer requires bool args, lazy imports, and type-only imports used at runtime
 
 [tool.mypy]
 python_version = "3.11"
