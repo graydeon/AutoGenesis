@@ -75,6 +75,7 @@ class EmployeesConfig(BaseModel):
     brain_memory_limit: int = 1000
     brain_context_limit: int = 20
     changelog_context_limit: int = 10
+    dispatch_timeout: float = 300.0
 
 
 class AutoGenesisConfig(BaseModel):

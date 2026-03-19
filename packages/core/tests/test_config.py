@@ -67,6 +67,13 @@ class TestEmployeesConfig:
         assert cfg.standup_enabled is True
         assert cfg.brain_memory_limit == 1000
 
+    def test_employees_config_dispatch_timeout(self):
+        """EmployeesConfig has dispatch_timeout defaulting to 300."""
+        from autogenesis_core.config import EmployeesConfig
+
+        cfg = EmployeesConfig()
+        assert cfg.dispatch_timeout == 300.0
+
     def test_in_root_config(self):
         cfg = AutoGenesisConfig()
         assert isinstance(cfg.employees, EmployeesConfig)

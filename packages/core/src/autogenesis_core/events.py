@@ -18,7 +18,7 @@ logger = structlog.get_logger()
 
 
 class EventType(StrEnum):
-    """36 event types using domain.subject.action naming."""
+    """42 event types using domain.subject.action naming."""
 
     LOOP_EXECUTION_START = "loop.execution.start"
     LOOP_EXECUTION_ITERATION = "loop.execution.iteration"
@@ -56,6 +56,12 @@ class EventType(StrEnum):
     EMPLOYEE_FIRED = "employee.fired"
     EMPLOYEE_TRAINED = "employee.trained"
     EMPLOYEE_UNION_PROPOSAL = "employee.union.proposal"
+    CEO_GOAL_START = "ceo.goal.start"
+    CEO_SUBTASK_ASSIGN = "ceo.subtask.assign"
+    CEO_SUBTASK_COMPLETE = "ceo.subtask.complete"
+    CEO_SUBTASK_FAIL = "ceo.subtask.fail"
+    CEO_ESCALATION = "ceo.escalation"
+    CEO_GOAL_COMPLETE = "ceo.goal.complete"
 
 
 class Event(BaseModel):
