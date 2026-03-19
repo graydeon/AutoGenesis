@@ -9,6 +9,7 @@ from autogenesis_cli.commands.config import config as config_command
 from autogenesis_cli.commands.login import login_command
 from autogenesis_cli.commands.logout import logout_command
 from autogenesis_cli.commands.run import run_command
+from autogenesis_cli.commands.twitter import twitter_app
 
 app = typer.Typer(
     name="autogenesis",
@@ -45,6 +46,7 @@ app.command(name="logout")(logout_command)
 app.command(name="run")(run_command)
 app.command(name="chat")(chat_command)
 app.command(name="config")(config_command)
+app.add_typer(twitter_app, name="twitter")
 
 
 def main() -> None:

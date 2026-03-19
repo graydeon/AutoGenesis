@@ -72,3 +72,27 @@ class TestConfigCommand:
         result = runner.invoke(app, ["config", "show"])
         assert result.exit_code == 0
         assert "codex" in result.output
+
+
+class TestTwitterCommand:
+    def test_twitter_help(self):
+        result = runner.invoke(app, ["twitter", "--help"])
+        assert result.exit_code == 0
+        assert "start" in result.output
+        assert "stop" in result.output
+        assert "queue" in result.output
+        assert "interview" in result.output
+
+    def test_twitter_start(self):
+        result = runner.invoke(app, ["twitter", "start"])
+        assert result.exit_code == 0
+        assert "granted" in result.output.lower()
+
+    def test_twitter_stop(self):
+        result = runner.invoke(app, ["twitter", "stop"])
+        assert result.exit_code == 0
+
+    def test_twitter_status(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+        result = runner.invoke(app, ["twitter", "status"])
+        assert result.exit_code == 0
