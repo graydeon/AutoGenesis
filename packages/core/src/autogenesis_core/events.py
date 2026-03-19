@@ -18,7 +18,7 @@ logger = structlog.get_logger()
 
 
 class EventType(StrEnum):
-    """12 event types using domain.subject.action naming."""
+    """36 event types using domain.subject.action naming."""
 
     LOOP_EXECUTION_START = "loop.execution.start"
     LOOP_EXECUTION_ITERATION = "loop.execution.iteration"
@@ -43,6 +43,19 @@ class EventType(StrEnum):
     TWITTER_GUARDRAIL_VIOLATION = "twitter.guardrail.violation"
     TWITTER_INJECTION_BLOCKED = "twitter.injection.blocked"
     TWITTER_AUTH_REQUIRED = "twitter.auth.required"
+    EMPLOYEE_SESSION_START = "employee.session.start"
+    EMPLOYEE_SESSION_END = "employee.session.end"
+    EMPLOYEE_SESSION_FAILED = "employee.session.failed"
+    EMPLOYEE_SESSION_TIMEOUT = "employee.session.timeout"
+    EMPLOYEE_MESSAGE_SENT = "employee.message.sent"
+    EMPLOYEE_MESSAGE_DELIVERED = "employee.message.delivered"
+    EMPLOYEE_STANDUP_POSTED = "employee.standup.posted"
+    EMPLOYEE_MEETING_START = "employee.meeting.start"
+    EMPLOYEE_MEETING_END = "employee.meeting.end"
+    EMPLOYEE_HIRED = "employee.hired"
+    EMPLOYEE_FIRED = "employee.fired"
+    EMPLOYEE_TRAINED = "employee.trained"
+    EMPLOYEE_UNION_PROPOSAL = "employee.union.proposal"
 
 
 class Event(BaseModel):

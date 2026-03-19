@@ -63,6 +63,20 @@ class TwitterConfig(BaseModel):
     selectors_path: str = ""
 
 
+class EmployeesConfig(BaseModel):
+    """Agent employee configuration."""
+
+    enabled: bool = False
+    global_roster_path: str = ""
+    standup_enabled: bool = True
+    standup_time: str = "09:00"
+    standup_timezone: str = "America/New_York"
+    max_meeting_rounds: int = 3
+    brain_memory_limit: int = 1000
+    brain_context_limit: int = 20
+    changelog_context_limit: int = 10
+
+
 class AutoGenesisConfig(BaseModel):
     """Root configuration model."""
 
@@ -70,6 +84,7 @@ class AutoGenesisConfig(BaseModel):
     tokens: TokenConfig = Field(default_factory=TokenConfig)
     security: SecurityConfig = Field(default_factory=SecurityConfig)
     twitter: TwitterConfig = Field(default_factory=TwitterConfig)
+    employees: EmployeesConfig = Field(default_factory=EmployeesConfig)
     credential_provider: CredentialProviderType = CredentialProviderType.ENV
     credential_path: str = ""  # for file/gateway providers
 

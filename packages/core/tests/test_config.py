@@ -6,6 +6,7 @@ from autogenesis_core.config import (
     AutoGenesisConfig,
     CodexConfig,
     CredentialProviderType,
+    EmployeesConfig,
     TwitterConfig,
     load_config,
 )
@@ -57,6 +58,18 @@ class TestTwitterConfig:
         monkeypatch.setenv("AUTOGENESIS_TWITTER__ENABLED", "true")
         cfg = load_config()
         assert cfg.twitter.enabled is True
+
+
+class TestEmployeesConfig:
+    def test_defaults(self):
+        cfg = EmployeesConfig()
+        assert cfg.enabled is False
+        assert cfg.standup_enabled is True
+        assert cfg.brain_memory_limit == 1000
+
+    def test_in_root_config(self):
+        cfg = AutoGenesisConfig()
+        assert isinstance(cfg.employees, EmployeesConfig)
 
 
 class TestLoadConfig:

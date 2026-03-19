@@ -48,3 +48,10 @@ class TestSubAgentManager:
         mgr = SubAgentManager(codex_binary="env")
         result = await mgr.spawn(task="", cwd="/tmp")  # noqa: S108
         assert "AUTOGENESIS_AGENT_DEPTH=1" in result.output
+
+
+class TestSubAgentManagerExtended:
+    async def test_spawn_with_env_overrides(self):
+        mgr = SubAgentManager(codex_binary="env")
+        result = await mgr.spawn(task="", cwd="/tmp", env_overrides={"CUSTOM_VAR": "hello"})  # noqa: S108
+        assert "CUSTOM_VAR=hello" in result.output
