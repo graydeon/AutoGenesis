@@ -6,6 +6,7 @@ dispatches via SubAgentManager, and adapts plans based on results.
 
 from __future__ import annotations
 
+import asyncio
 import re
 import time
 from pathlib import Path
@@ -25,7 +26,6 @@ from autogenesis_employees.ceo_models import (
 from autogenesis_employees.reasoning import (
     build_assign_prompt,
     build_decompose_prompt,
-    build_reevaluate_prompt,
     extract_json,
 )
 from autogenesis_employees.state import CEOStateManager
@@ -321,57 +321,65 @@ class CEOOrchestrator:
             completed_count=0,
         )
 
-    async def _execute_plan(  # noqa: PLR0915
+    async def _assign_employee(
+        self,
+        subtask_desc: str,
+        goal: str,
+        roster: list[dict[str, Any]],
+    ) -> str:
+        """Assign an employee to a subtask via LLM reasoning."""
+        instructions, message = build_assign_prompt(
+            subtask=subtask_desc,
+            goal_context=goal,
+            roster_details=roster,
+            previous_results=[],
+        )
+        assign_result = await self._codex_call_json(instructions, message, label="ceo:assign")
+        employee_id = assign_result.get("employee_id", "")
+        if not self._registry.get(employee_id):
+            employee_id = self._registry.list_active()[0].id
+        return employee_id
+
+    async def _run_subtask(
         self,
         goal_id: str,
-        goal: str,
+        subtask_desc: str,
+        employee_id: str,
+        subtask_index: int,
         plan_path: Path,
-        remaining: list[dict[str, Any]],
-        completed_count: int,
-    ) -> GoalResult:
-        """Run the rolling dispatch loop — shared by run() and resume()."""
+    ) -> SubtaskResult:
+        """Dispatch a single subtask with retry. Returns SubtaskResult."""
         state = self._require_state()
-        roster = self._roster_summary()
-        subtask_results: list[SubtaskResult] = []
 
-        # Gather previous results from executions table (for resume)
-        prev_execs = await state.list_executions(goal_id=goal_id)
-        previous_results = [
-            {"subtask": e["subtask"], "result": (e.get("output") or "")[:200]}
-            for e in prev_execs
-            if e["status"] == "completed"
-        ]
-
-        while remaining:
-            current = remaining.pop(0)
-            subtask_desc = current["description"]
-            completed_count += 1
-
-            # Assign
-            instructions, message = build_assign_prompt(
-                subtask=subtask_desc,
-                goal_context=goal,
-                roster_details=roster,
-                previous_results=previous_results,
+        self._bus.emit(
+            Event(
+                event_type=EventType.CEO_SUBTASK_ASSIGN,
+                data={"subtask": subtask_desc, "employee_id": employee_id},
             )
-            assign_result = await self._codex_call_json(instructions, message, label="ceo:assign")
-            employee_id = assign_result.get("employee_id", "")
-            if not self._registry.get(employee_id):
-                employee_id = self._registry.list_active()[0].id
+        )
+        logger.info("ceo_subtask_assign", subtask=subtask_desc[:80], employee=employee_id)
 
-            self._bus.emit(
-                Event(
-                    event_type=EventType.CEO_SUBTASK_ASSIGN,
-                    data={"subtask": subtask_desc, "employee_id": employee_id},
-                )
+        start_time = time.monotonic()
+        output, _exit_code, success = await self._dispatch_employee(employee_id, subtask_desc)
+        attempt = 1
+
+        exec_id = await state.record_execution(
+            goal_id=goal_id,
+            task_id=None,
+            subtask=subtask_desc,
+            employee_id=employee_id,
+            attempt=attempt,
+        )
+
+        if not success:
+            logger.warning("ceo_subtask_fail_retry", subtask=subtask_desc[:80], attempt=1)
+            await state.update_execution(exec_id, status="failed", output=output)
+            attempt = 2
+            output, _exit_code, success = await self._dispatch_employee(
+                employee_id,
+                subtask_desc,
+                failure_context=output,
             )
-            logger.info("ceo_subtask_assign", subtask=subtask_desc[:80], employee=employee_id)
-
-            # Dispatch with retry
-            start_time = time.monotonic()
-            output, _exit_code, success = await self._dispatch_employee(employee_id, subtask_desc)
-            attempt = 1
-
             exec_id = await state.record_execution(
                 goal_id=goal_id,
                 task_id=None,
@@ -380,95 +388,93 @@ class CEOOrchestrator:
                 attempt=attempt,
             )
 
-            if not success:
-                logger.warning("ceo_subtask_fail_retry", subtask=subtask_desc[:80], attempt=1)
-                await state.update_execution(exec_id, status="failed", output=output)
-                attempt = 2
-                output, _exit_code, success = await self._dispatch_employee(
-                    employee_id, subtask_desc, failure_context=output
-                )
-                exec_id = await state.record_execution(
-                    goal_id=goal_id,
-                    task_id=None,
-                    subtask=subtask_desc,
-                    employee_id=employee_id,
-                    attempt=attempt,
-                )
+        duration = time.monotonic() - start_time
 
-            duration = time.monotonic() - start_time
+        if success:
+            await state.update_execution(exec_id, status="completed", output=output)
+            self._update_plan_subtask(plan_path, subtask_index, employee_id, output[:200])
+            self._bus.emit(
+                Event(
+                    event_type=EventType.CEO_SUBTASK_COMPLETE,
+                    data={"subtask": subtask_desc, "employee_id": employee_id},
+                )
+            )
+            return SubtaskResult(
+                subtask=subtask_desc,
+                employee_id=employee_id,
+                status="completed",
+                output=output,
+                attempt=attempt,
+                duration_seconds=duration,
+            )
 
-            if success:
-                await state.update_execution(exec_id, status="completed", output=output)
-                self._update_plan_subtask(plan_path, completed_count, employee_id, output[:200])
-                self._bus.emit(
-                    Event(
-                        event_type=EventType.CEO_SUBTASK_COMPLETE,
-                        data={"subtask": subtask_desc, "employee_id": employee_id},
-                    )
-                )
-                subtask_results.append(
-                    SubtaskResult(
-                        subtask=subtask_desc,
-                        employee_id=employee_id,
-                        status="completed",
-                        output=output,
-                        attempt=attempt,
-                        duration_seconds=duration,
-                    )
-                )
-                previous_results.append({"subtask": subtask_desc, "result": output[:200]})
+        await state.update_execution(exec_id, status="failed", output=output)
+        self._bus.emit(
+            Event(
+                event_type=EventType.CEO_SUBTASK_FAIL,
+                data={"subtask": subtask_desc, "employee_id": employee_id, "output": output[:500]},
+            )
+        )
+        return SubtaskResult(
+            subtask=subtask_desc,
+            employee_id=employee_id,
+            status="escalated",
+            output=output,
+            attempt=attempt,
+            duration_seconds=duration,
+        )
 
-                # Re-evaluate if more subtasks remain
-                if remaining:
-                    plan_text = plan_path.read_text()
-                    instructions, message = build_reevaluate_prompt(goal, plan_text, output[:500])
-                    reeval = await self._codex_call_json(
-                        instructions, message, label="ceo:re-evaluate"
-                    )
-                    if isinstance(reeval, list):
-                        remaining = reeval
-                        self._rewrite_remaining_subtasks(plan_path, completed_count, remaining)
-            else:
-                await state.update_execution(exec_id, status="failed", output=output)
-                self._bus.emit(
-                    Event(
-                        event_type=EventType.CEO_SUBTASK_FAIL,
-                        data={
-                            "subtask": subtask_desc,
-                            "employee_id": employee_id,
-                            "output": output[:500],
-                        },
-                    )
+    async def _execute_plan(
+        self,
+        goal_id: str,
+        goal: str,
+        plan_path: Path,
+        remaining: list[dict[str, Any]],
+        completed_count: int,
+    ) -> GoalResult:
+        """Parallel dispatch — assign all subtasks then dispatch concurrently."""
+        state = self._require_state()
+        roster = self._roster_summary()
+        subtask_results: list[SubtaskResult] = []
+
+        # Assign all subtasks to employees (sequential — fast LLM calls)
+        assignments: list[tuple[str, str, int]] = []  # (subtask_desc, employee_id, index)
+        for i, subtask in enumerate(remaining):
+            desc = subtask["description"]
+            employee_id = await self._assign_employee(desc, goal, roster)
+            assignments.append((desc, employee_id, completed_count + i + 1))
+
+        # Dispatch all in parallel (semaphore in SubAgentManager throttles concurrency)
+        async def _dispatch_one(desc: str, emp: str, idx: int) -> SubtaskResult:
+            return await self._run_subtask(goal_id, desc, emp, idx, plan_path)
+
+        results = await asyncio.gather(
+            *[_dispatch_one(desc, emp, idx) for desc, emp, idx in assignments]
+        )
+
+        # Collect results
+        escalated = False
+        for result in results:
+            subtask_results.append(result)
+            if result.status == "escalated":
+                escalated = True
+
+        if escalated:
+            await state.update_goal(goal_id, status="escalated")
+            self._update_plan_status(plan_path, "escalated")
+            self._bus.emit(
+                Event(
+                    event_type=EventType.CEO_ESCALATION,
+                    data={"goal_id": goal_id},
                 )
-                self._bus.emit(
-                    Event(
-                        event_type=EventType.CEO_ESCALATION,
-                        data={
-                            "goal_id": goal_id,
-                            "subtask": subtask_desc,
-                            "output": output[:500],
-                        },
-                    )
-                )
-                subtask_results.append(
-                    SubtaskResult(
-                        subtask=subtask_desc,
-                        employee_id=employee_id,
-                        status="escalated",
-                        output=output,
-                        attempt=attempt,
-                        duration_seconds=duration,
-                    )
-                )
-                await state.update_goal(goal_id, status="escalated")
-                self._update_plan_status(plan_path, "escalated")
-                logger.error("ceo_escalation", goal_id=goal_id, subtask=subtask_desc[:80])
-                return GoalResult(
-                    goal_id=goal_id,
-                    status="escalated",
-                    subtask_results=subtask_results,
-                    plan_path=str(plan_path),
-                )
+            )
+            logger.error("ceo_escalation", goal_id=goal_id)
+            return GoalResult(
+                goal_id=goal_id,
+                status="escalated",
+                subtask_results=subtask_results,
+                plan_path=str(plan_path),
+            )
 
         # All subtasks complete
         await state.update_goal(goal_id, status="completed")
