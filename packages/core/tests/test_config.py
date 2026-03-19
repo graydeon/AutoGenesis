@@ -1,74 +1,53 @@
-"""Tests for XDG-compliant configuration system."""
+"""Tests for configuration system."""
 
 from __future__ import annotations
 
-import yaml
 from autogenesis_core.config import (
     AutoGenesisConfig,
-    ModelConfig,
+    CodexConfig,
+    CredentialProviderType,
     load_config,
 )
 
 
+class TestCodexConfig:
+    def test_defaults(self):
+        cfg = CodexConfig()
+        assert cfg.model == "gpt-5.3-codex"
+        assert cfg.api_base_url == "https://api.openai.com/v1"
+
+    def test_custom_model(self):
+        cfg = CodexConfig(model="gpt-5.4")
+        assert cfg.model == "gpt-5.4"
+
+
 class TestAutoGenesisConfig:
-    def test_default_config(self):
-        config = AutoGenesisConfig()
-        assert config.models is not None
-        assert config.tokens is not None
-        assert config.security is not None
-        assert config.models.default_tier == "standard"
+    def test_defaults(self):
+        cfg = AutoGenesisConfig()
+        assert isinstance(cfg.codex, CodexConfig)
+        assert cfg.credential_provider == CredentialProviderType.ENV
 
-    def test_from_yaml(self, tmp_path, monkeypatch):
-        monkeypatch.chdir(tmp_path)  # avoid picking up repo's .autogenesis/
-        config_file = tmp_path / "config.yaml"
-        config_file.write_text(yaml.dump({"models": {"default_tier": "premium"}}))
-        config = load_config(config_path=config_file)
-        assert config.models.default_tier == "premium"
-
-    def test_env_var_override(self, monkeypatch, tmp_path):
-        monkeypatch.setenv("AUTOGENESIS_MODELS__DEFAULT_TIER", "fast")
-        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
-        config = load_config()
-        assert config.models.default_tier == "fast"
-
-    def test_config_precedence(self, tmp_path, monkeypatch):
-        user_config = tmp_path / "config" / "autogenesis" / "config.yaml"
-        user_config.parent.mkdir(parents=True)
-        user_config.write_text(yaml.dump({"models": {"default_tier": "standard"}}))
-        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
-
-        project_config = tmp_path / "project" / ".autogenesis" / "config.yaml"
-        project_config.parent.mkdir(parents=True)
-        project_config.write_text(yaml.dump({"models": {"default_tier": "premium"}}))
-
-        config = load_config(project_path=project_config)
-        assert config.models.default_tier == "premium"
-
-    def test_model_config_defaults(self):
-        mc = ModelConfig()
-        assert mc.default_tier == "standard"
-        assert "fast" in mc.tiers
-        assert "standard" in mc.tiers
-        assert "premium" in mc.tiers
-
-    def test_config_serialization(self):
-        config = AutoGenesisConfig()
-        data = config.model_dump()
+    def test_serialization_roundtrip(self):
+        cfg = AutoGenesisConfig()
+        data = cfg.model_dump()
         restored = AutoGenesisConfig.model_validate(data)
-        assert restored.models.default_tier == config.models.default_tier
+        assert restored.codex.model == cfg.codex.model
 
-    def test_token_config_defaults(self):
-        config = AutoGenesisConfig()
-        assert config.tokens.max_tokens_per_session == 100_000
-        assert config.tokens.max_cost_per_session == 5.0
+    def test_no_tier_config(self):
+        """TierConfig and ModelConfig are removed."""
+        cfg = AutoGenesisConfig()
+        assert not hasattr(cfg, "models")
 
-    def test_security_config_defaults(self):
-        config = AutoGenesisConfig()
-        assert config.security.guardrails_enabled is True
-        assert config.security.sandbox_provider == "subprocess"
 
-    def test_empty_yaml_returns_defaults(self, tmp_path):
-        config_file = tmp_path / "empty.yaml"
-        config_file.write_text("")
-        config = load_config(config_path=config_file)
-        assert config.models.default_tier == "standard"
+class TestLoadConfig:
+    def test_returns_config(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+        monkeypatch.delenv("AUTOGENESIS_CODEX__MODEL", raising=False)
+        cfg = load_config()
+        assert isinstance(cfg, AutoGenesisConfig)
+
+    def test_env_override(self, monkeypatch, tmp_path):
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+        monkeypatch.setenv("AUTOGENESIS_CODEX__MODEL", "gpt-5.4")
+        cfg = load_config()
+        assert cfg.codex.model == "gpt-5.4"

@@ -1,115 +1,89 @@
-"""XDG-compliant configuration system."""
+"""Configuration system for AutoGenesis.
+
+6-layer cascade: defaults → system → user → project → env → CLI flags.
+XDG Base Directory compliant.
+"""
 
 from __future__ import annotations
 
-from os import environ
+import os
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
+import structlog
 import yaml
 from pydantic import BaseModel, Field
 
-
-class TierConfig(BaseModel):
-    """Configuration for a single model tier."""
-
-    primary: str = ""
-    fallback: list[str] = []
+logger = structlog.get_logger()
 
 
-class ModelConfig(BaseModel):
-    """Model routing configuration."""
+class CredentialProviderType(StrEnum):
+    """How AutoGenesis obtains OAuth credentials."""
 
-    default_tier: str = "standard"
-    tiers: dict[str, TierConfig] = Field(
-        default_factory=lambda: {
-            "fast": TierConfig(primary="gpt-4o-mini", fallback=["claude-3-5-haiku-20241022"]),
-            "standard": TierConfig(primary="claude-sonnet-4-20250514", fallback=["gpt-4o"]),
-            "premium": TierConfig(primary="claude-opus-4-20250918", fallback=["o3"]),
-        }
-    )
+    ENV = "env"
+    FILE = "file"
+    GATEWAY = "gateway"
+
+
+class CodexConfig(BaseModel):
+    """OpenAI Codex API configuration."""
+
+    model: str = "gpt-5.3-codex"
+    api_base_url: str = "https://api.openai.com/v1"
+    timeout: float = 300.0
+    max_retries: int = 3
 
 
 class TokenConfig(BaseModel):
-    """Token budget configuration."""
+    """Token budget limits (token counts, not USD — subscription billing)."""
 
-    max_tokens_per_session: int = 100_000
-    max_cost_per_session: float = 5.0
-    max_cost_per_day: float = 50.0
-    max_cost_per_month: float = 500.0
+    max_tokens_per_session: int = 500_000
+    max_tokens_per_day: int = 5_000_000
 
 
 class SecurityConfig(BaseModel):
-    """Security configuration."""
+    """Security settings."""
 
     guardrails_enabled: bool = True
-    sandbox_provider: str = "subprocess"
-    tools: dict[str, Any] = Field(
-        default_factory=lambda: {
-            "web_fetch": {"enabled": False},
-        }
-    )
-
-
-class TelemetryConfig(BaseModel):
-    """Telemetry configuration."""
-
-    enabled: bool = False
-    endpoint: str = ""
-
-
-class MCPConfig(BaseModel):
-    """MCP server configuration."""
-
-    servers: dict[str, Any] = Field(default_factory=dict)
-    allowlist: list[str] = []
-
-
-class CoreConfig(BaseModel):
-    """Core runtime configuration."""
-
-    session_retention_days: int = 30
 
 
 class AutoGenesisConfig(BaseModel):
-    """Merged configuration from all sources."""
+    """Root configuration model."""
 
-    models: ModelConfig = Field(default_factory=ModelConfig)
+    codex: CodexConfig = Field(default_factory=CodexConfig)
     tokens: TokenConfig = Field(default_factory=TokenConfig)
     security: SecurityConfig = Field(default_factory=SecurityConfig)
-    telemetry: TelemetryConfig = Field(default_factory=TelemetryConfig)
-    mcp: MCPConfig = Field(default_factory=MCPConfig)
-    core: CoreConfig = Field(default_factory=CoreConfig)
+    credential_provider: CredentialProviderType = CredentialProviderType.ENV
+    credential_path: str = ""  # for file/gateway providers
 
 
 def _xdg_config_home() -> Path:
-    """Get XDG config home directory."""
-    return Path(environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config")))
+    return Path(os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config")))
 
 
-def _find_project_config(start: Path | None = None) -> Path | None:
-    """Walk up from start to find .autogenesis/config.yaml."""
-    current = start or Path.cwd()
-    for parent in [current, *current.parents]:
+def _find_project_config() -> Path | None:
+    cwd = Path.cwd()
+    for parent in [cwd, *cwd.parents]:
         candidate = parent / ".autogenesis" / "config.yaml"
         if candidate.exists():
             return candidate
-        if (parent / ".git").exists():
-            break
     return None
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
-    """Load a YAML file, returning empty dict on failure."""
     if not path.exists():
         return {}
-    with path.open() as f:
-        data = yaml.safe_load(f)
-    return data if isinstance(data, dict) else {}
+    try:
+        with path.open() as f:
+            data = yaml.safe_load(f)
+            return data if isinstance(data, dict) else {}
+    except (OSError, yaml.YAMLError):
+        logger.warning("config_load_failed", path=str(path))
+        return {}
 
 
 def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
-    """Deep merge override into base."""
     result = base.copy()
     for key, value in override.items():
         if key in result and isinstance(result[key], dict) and isinstance(value, dict):
@@ -119,49 +93,37 @@ def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any
     return result
 
 
-def load_config(
-    config_path: Path | None = None,
-    project_path: Path | None = None,
-    env_prefix: str = "AUTOGENESIS_",
-) -> AutoGenesisConfig:
-    """Load configuration with 6-layer cascade.
+def _env_overrides() -> dict[str, Any]:
+    """Parse AUTOGENESIS_* env vars into nested dict. Uses __ as separator."""
+    prefix = "AUTOGENESIS_"
+    result: dict[str, Any] = {}
+    for key, value in os.environ.items():
+        if not key.startswith(prefix):
+            continue
+        parts = key[len(prefix) :].lower().split("__")
+        current = result
+        for part in parts[:-1]:
+            current = current.setdefault(part, {})
+        current[parts[-1]] = value
+    return result
 
-    Order (later overrides earlier):
-    1. Built-in defaults (hardcoded in Pydantic models)
-    2. System config: /etc/autogenesis/config.yaml
-    3. User config: $XDG_CONFIG_HOME/autogenesis/config.yaml
-    4. Project config: .autogenesis/config.yaml
-    5. Environment variables: AUTOGENESIS_* (nested via __)
-    6. CLI flags (applied by caller after load_config)
-    """
+
+def load_config() -> AutoGenesisConfig:
+    """Load configuration with 6-layer cascade."""
     merged: dict[str, Any] = {}
 
     # Layer 2: System config
-    system_config = Path("/etc/autogenesis/config.yaml")
-    merged = _deep_merge(merged, _load_yaml(system_config))
+    merged = _deep_merge(merged, _load_yaml(Path("/etc/autogenesis/config.yaml")))
 
     # Layer 3: User config
-    if config_path:
-        merged = _deep_merge(merged, _load_yaml(config_path))
-    else:
-        user_config = _xdg_config_home() / "autogenesis" / "config.yaml"
-        merged = _deep_merge(merged, _load_yaml(user_config))
+    merged = _deep_merge(merged, _load_yaml(_xdg_config_home() / "autogenesis" / "config.yaml"))
 
     # Layer 4: Project config
-    if project_path:
-        merged = _deep_merge(merged, _load_yaml(project_path))
-    else:
-        found = _find_project_config()
-        if found:
-            merged = _deep_merge(merged, _load_yaml(found))
+    project = _find_project_config()
+    if project:
+        merged = _deep_merge(merged, _load_yaml(project))
 
     # Layer 5: Environment variables
-    for key, value in environ.items():
-        if key.startswith(env_prefix):
-            parts = key[len(env_prefix) :].lower().split("__")
-            current = merged
-            for part in parts[:-1]:
-                current = current.setdefault(part, {})
-            current[parts[-1]] = value
+    merged = _deep_merge(merged, _env_overrides())
 
     return AutoGenesisConfig.model_validate(merged)
