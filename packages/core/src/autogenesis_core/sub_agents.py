@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import sys
 import tempfile
 from pathlib import Path
 
@@ -39,9 +40,11 @@ class SubAgentManager:
         self,
         max_concurrent: int = 3,
         codex_binary: str = "codex",
+        stream_output: bool = False,  # noqa: FBT001, FBT002
     ) -> None:
         self.max_concurrent = max_concurrent
         self._codex_binary = codex_binary
+        self._stream_output = stream_output
         self._semaphore = asyncio.Semaphore(max_concurrent)
         self._active: dict[str, asyncio.subprocess.Process] = {}
 
@@ -73,13 +76,39 @@ class SubAgentManager:
             cmd_args = [self._codex_binary, task] if task else [self._codex_binary]
         return cmd_args
 
-    async def spawn(
+    async def _read_stream(
+        self,
+        proc: asyncio.subprocess.Process,
+        label: str,
+    ) -> str:
+        """Read stdout line by line, optionally streaming to terminal."""
+        chunks: list[str] = []
+        total_chars = 0
+        assert proc.stdout is not None  # noqa: S101
+        while True:
+            line = await proc.stdout.readline()
+            if not line:
+                break
+            decoded = line.decode("utf-8", errors="replace")
+            total_chars += len(decoded)
+            if total_chars <= _MAX_OUTPUT_CHARS:
+                chunks.append(decoded)
+            if self._stream_output:
+                sys.stderr.write(f"  [{label}] {decoded}")
+                sys.stderr.flush()
+        output = "".join(chunks)
+        if total_chars > _MAX_OUTPUT_CHARS:
+            output += f"\n[truncated — {total_chars} chars total]"
+        return output
+
+    async def spawn(  # noqa: PLR0913
         self,
         task: str,
         cwd: str,
         timeout: float = 300.0,  # noqa: ASYNC109
         system_prompt: str | None = None,
         env_overrides: dict[str, str] | None = None,
+        label: str = "",
     ) -> SubAgentResult:
         """Spawn a Codex CLI sub-agent and wait for completion."""
         depth = self._get_depth()
@@ -102,18 +131,15 @@ class SubAgentManager:
             )
 
             task_id = f"agent_{id(proc)}"
+            agent_label = label or task_id
             self._active[task_id] = proc
 
             try:
-                stdout, _ = await asyncio.wait_for(
-                    proc.communicate(),
+                output = await asyncio.wait_for(
+                    self._read_stream(proc, agent_label),
                     timeout=timeout,
                 )
-                output = stdout.decode("utf-8", errors="replace")
-                if len(output) > _MAX_OUTPUT_CHARS:
-                    output = (
-                        output[:_MAX_OUTPUT_CHARS] + f"\n[truncated — {len(output)} chars total]"
-                    )
+                await proc.wait()
 
                 return SubAgentResult(
                     output=output,

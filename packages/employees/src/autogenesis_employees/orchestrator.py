@@ -138,7 +138,9 @@ class CEOOrchestrator:
 
     # --- LLM calls ---
 
-    async def _codex_call(self, instructions: str, user_message: str) -> str:
+    async def _codex_call(
+        self, instructions: str, user_message: str, label: str = "ceo-reasoning"
+    ) -> str:
         """Make a reasoning call via codex exec subprocess."""
         prompt = f"{instructions}\n\n{user_message}"
         result = await self._sub_agent_mgr.spawn(
@@ -146,12 +148,15 @@ class CEOOrchestrator:
             cwd=str(self._project_root),
             timeout=self._dispatch_timeout,
             system_prompt=instructions,
+            label=label,
         )
         return result.output
 
-    async def _codex_call_json(self, instructions: str, user_message: str) -> Any:  # noqa: ANN401
+    async def _codex_call_json(
+        self, instructions: str, user_message: str, label: str = "ceo-reasoning"
+    ) -> Any:  # noqa: ANN401
         """Make a reasoning call and extract JSON. Retries once on parse failure."""
-        text = await self._codex_call(instructions, user_message)
+        text = await self._codex_call(instructions, user_message, label=label)
         try:
             return extract_json(text)
         except ValueError:
@@ -263,6 +268,7 @@ class CEOOrchestrator:
             timeout=self._dispatch_timeout,
             system_prompt=system_prompt,
             env_overrides=env_overrides,
+            label=employee_id,
         )
         return result.output, result.exit_code, result.success
 
@@ -285,7 +291,7 @@ class CEOOrchestrator:
         roster = self._roster_summary()
         changelog = self._changelog.read_recent(5) if self._changelog else []
         instructions, message = build_decompose_prompt(goal, roster, changelog)
-        subtasks_raw = await self._codex_call_json(instructions, message)
+        subtasks_raw = await self._codex_call_json(instructions, message, label="ceo:decompose")
         if not isinstance(subtasks_raw, list) or not subtasks_raw:
             msg = "Decompose returned empty or invalid subtasks"
             raise RuntimeError(msg)
@@ -338,7 +344,7 @@ class CEOOrchestrator:
                 roster_details=roster,
                 previous_results=previous_results,
             )
-            assign_result = await self._codex_call_json(instructions, message)
+            assign_result = await self._codex_call_json(instructions, message, label="ceo:assign")
             employee_id = assign_result.get("employee_id", "")
             if not self._registry.get(employee_id):
                 employee_id = self._registry.list_active()[0].id
@@ -406,7 +412,9 @@ class CEOOrchestrator:
                 if remaining:
                     plan_text = plan_path.read_text()
                     instructions, message = build_reevaluate_prompt(goal, plan_text, output[:500])
-                    reeval = await self._codex_call_json(instructions, message)
+                    reeval = await self._codex_call_json(
+                        instructions, message, label="ceo:re-evaluate"
+                    )
                     if isinstance(reeval, list):
                         remaining = reeval
                         self._rewrite_remaining_subtasks(plan_path, completed_count, remaining)

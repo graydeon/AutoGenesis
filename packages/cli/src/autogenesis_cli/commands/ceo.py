@@ -53,7 +53,7 @@ def _get_orchestrator():  # noqa: ANN202
     return CEOOrchestrator(
         registry=registry,
         runtime=EmployeeRuntime(),
-        sub_agent_mgr=SubAgentManager(),
+        sub_agent_mgr=SubAgentManager(stream_output=True),
         codex=codex,
         dispatch_timeout=cfg.employees.dispatch_timeout,
     )
