@@ -201,9 +201,9 @@ class CEOOrchestrator:
         count = 0
         lines = content.split("\n")
         for i, line in enumerate(lines):
-            if line.strip().startswith("- [ ] **"):
+            if line.strip().startswith(("- [ ] **", "- [x] **")):
                 count += 1
-                if count == index:
+                if count == index and line.strip().startswith("- [ ] **"):
                     lines[i] = line.replace("- [ ]", "- [x]")
                     if i + 1 < len(lines) and "(pending)" in lines[i + 1]:
                         lines[i + 1] = f"  Assigned to: {employee_id}\n  Result: {result_summary}"
@@ -222,17 +222,10 @@ class CEOOrchestrator:
         content = plan_path.read_text()
         lines = content.split("\n")
         result_lines: list[str] = []
-        in_subtasks = False
         for line in lines:
-            if line.strip().startswith("- [x] **"):
-                result_lines.append(line)
-                in_subtasks = True
-            elif line.strip().startswith("- [ ] **") and in_subtasks:
+            if line.strip().startswith("- [ ] **"):
                 break
-            elif not in_subtasks or not line.strip().startswith(
-                ("(pending)", "Assigned to:", "Result:")
-            ):
-                result_lines.append(line)
+            result_lines.append(line)
 
         for i, st in enumerate(new_subtasks, completed_count + 1):
             result_lines.append(f"- [ ] **{i}. {st['description']}**\n  (pending)\n")

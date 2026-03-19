@@ -241,4 +241,6 @@ class TestCEOOrchestrator:
         content = plan_path.read_text()
         assert "Step 1" in content
         assert "Step 2" in content
+        # Both subtasks should be checked off
+        assert content.count("- [x]") == 2
         await orch.close()
