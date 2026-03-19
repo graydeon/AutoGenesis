@@ -26,6 +26,50 @@ Holds references to:
 - `CodexClient` — for the CEO's own reasoning calls (decompose, assign, re-evaluate)
 - Per-employee manager cache (`dict[str, ManagerBundle]`) — lazily initialized `BrainManager`, `InboxManager`, `ChangelogManager` per employee
 
+### Data Models
+
+```python
+@dataclass
+class ManagerBundle:
+    brain: BrainManager
+    inbox: InboxManager
+
+class SubtaskResult(BaseModel):
+    subtask: str
+    employee_id: str
+    status: str  # completed / failed / escalated
+    output: str
+    attempt: int
+    duration_seconds: float
+
+class GoalResult(BaseModel):
+    goal_id: str
+    status: str  # completed / escalated
+    subtask_results: list[SubtaskResult]
+    plan_path: str
+
+class TaskResult(BaseModel):
+    task_id: str
+    status: str  # completed / failed / escalated
+    employee_id: str | None = None
+    output: str = ""
+    duration_seconds: float = 0.0
+
+class GoalStatus(BaseModel):
+    goal_id: str
+    description: str
+    status: str
+    subtasks_completed: int
+    subtasks_total: int
+    plan_path: str
+
+class TaskStatus(BaseModel):
+    task_id: str
+    description: str
+    status: str
+    priority: int
+```
+
 ### Entry Points
 
 1. **`async enqueue(description: str, priority: int = 0) -> str`** — Push a task onto the queue. Returns task ID. No execution.
@@ -33,29 +77,48 @@ Holds references to:
 3. **`async dispatch(task_id: str | None = None) -> TaskResult`** — Execute next queued task (or a specific one by ID).
 4. **`async status() -> list[GoalStatus | TaskStatus]`** — Return current state of all goals and tasks.
 5. **`async resume(goal_id: str) -> GoalResult`** — Resume an in-progress or escalated goal from last incomplete subtask.
+6. **`async close() -> None`** — Close all lazily-opened manager connections (BrainManager, InboxManager) and the state DB.
+
+### Pre-checks
+
+Before any dispatch (run or standalone), the orchestrator validates:
+- `EmployeeRegistry.list_active()` returns at least one employee. If empty, raises immediately with a clear error ("No active employees — use `autogenesis hr hire` to add employees").
+
+### Working Directory Resolution
+
+All employee dispatches use the **project root** as `cwd` — the directory containing `.autogenesis/`. Resolved once at orchestrator init via upward directory walk from `os.getcwd()`. Falls back to `os.getcwd()` if no `.autogenesis/` directory is found.
+
+### Dispatch Timeout
+
+Employee dispatch timeout defaults to `300.0` seconds (SubAgentManager default). Configurable via `EmployeesConfig.dispatch_timeout: float = 300.0`. The decompose call may also suggest per-subtask timeouts; if provided, they override the default.
 
 ### Run Loop
 
+Execution is **sequential** — one subtask at a time, no parallel dispatch. This keeps the re-evaluation step meaningful and avoids conflicts.
+
 ```
 run(goal) →
-  1. Decompose: Codex call breaks goal into ordered subtasks → save as markdown plan
-  2. Store goal record in SQLite (status: executing)
-  3. Pick next incomplete subtask from plan
-  4. Assign: Codex call with roster + subtask → picks employee_id
-  5. Build context: EmployeeRuntime.build_system_prompt() with:
-     - BrainManager.top_memories() for the employee
-     - InboxManager.get_unread() for the employee
-     - ChangelogManager.read_recent()
-  6. Dispatch: SubAgentManager.spawn(task, cwd, system_prompt, env_overrides)
-  7. Record execution in SQLite
-  8. On success:
+  1. Pre-check: verify active employees exist
+  2. Decompose: Codex call breaks goal into ordered subtasks → save as markdown plan
+  3. Store goal record in SQLite (status: executing)
+  4. Pick next incomplete subtask from plan
+  5. Assign: Codex call with roster + subtask → picks employee_id
+  6. Build context:
+     a. Get managers: brain = _get_managers(employee_id).brain, inbox = ...
+     b. brain_context = [m.content for m in await brain.top_memories(config.brain_context_limit)]
+     c. inbox_messages = [f"From {m.from_employee}: {m.subject}\n{m.body}" for m in await inbox.get_unread(employee_id)]
+     d. changelog_entries = changelog.read_recent(config.changelog_context_limit)
+     e. system_prompt = EmployeeRuntime.build_system_prompt(employee_config, brain_context, inbox_messages, changelog_entries, subtask)
+  7. Dispatch: SubAgentManager.spawn(subtask, cwd=project_root, timeout=dispatch_timeout, system_prompt=system_prompt, env_overrides=employee_config.env)
+  8. Record execution in SQLite
+  9. On success:
      - Store result, mark subtask complete in plan markdown
      - Employee writes to changelog via ChangelogWriteTool (part of their system prompt instructions)
      - Re-evaluate: Codex call with plan + results → may revise remaining subtasks
-  9. On failure:
+  10. On failure:
      - Attempt 1: Retry with failure output injected into system prompt
      - Attempt 2: Mark as escalated, pause goal, surface to user
-  10. Repeat 3-9 until plan complete or escalation
+  11. Repeat 4-10 until plan complete or escalation
 ```
 
 ### Dispatch (standalone task)
@@ -113,6 +176,8 @@ Location: `.autogenesis/ceo/ceo.db`
 | started_at | TEXT | ISO datetime |
 | finished_at | TEXT | nullable |
 
+Constraint: `CHECK (goal_id IS NOT NULL OR task_id IS NOT NULL)` — every execution belongs to either a goal or a standalone task.
+
 ### Markdown Plans
 
 Location: `.autogenesis/ceo/plans/goal-{id}.md`
@@ -141,7 +206,7 @@ Updated in-place as subtasks complete. After re-evaluation, subtasks may be adde
 
 ## LLM Reasoning Calls
 
-The CEO makes three types of internal Codex calls via `CodexClient.create_response_sync()`:
+The CEO makes three types of internal Codex calls via `CodexClient.create_response_sync()` (async method returning `CompletionResult`). JSON is extracted from `result.text`:
 
 ### 1. Decompose Call
 
@@ -152,7 +217,7 @@ The CEO makes three types of internal Codex calls via `CodexClient.create_respon
 
 ### 2. Assign Call
 
-- **Input:** subtask description, full roster details (id, title, persona, tools, training_directives), previous subtask results (if any)
+- **Input:** subtask description, overall goal context, full roster details (id, title, persona, tools, training_directives), previous subtask results (if any)
 - **System prompt:** "Given this subtask and your available employees, pick the single best employee to handle it. Consider their tools, training, and expertise."
 - **Expected output:** JSON `{"employee_id": str, "reasoning": str}`
 - **Parsing:** Same JSON extraction pattern
@@ -198,9 +263,7 @@ If a decompose/assign/re-evaluate call fails to produce parseable JSON:
 Managers are initialized lazily per employee on first assignment:
 
 ```python
-class ManagerBundle:
-    brain: BrainManager
-    inbox: InboxManager
+# ManagerBundle is a @dataclass (defined in Data Models section above)
 
 # In CEOOrchestrator:
 _managers: dict[str, ManagerBundle] = {}
@@ -214,9 +277,16 @@ async def _get_managers(self, employee_id: str) -> ManagerBundle:
         await inbox.initialize()
         self._managers[employee_id] = ManagerBundle(brain=brain, inbox=inbox)
     return self._managers[employee_id]
+
+async def close(self) -> None:
+    for bundle in self._managers.values():
+        await bundle.brain.close()
+        await bundle.inbox.close()
+    self._managers.clear()
+    await self._state.close()
 ```
 
-ChangelogManager is shared (one changelog for the whole team), not per-employee.
+`ChangelogManager` is shared (one changelog for the whole team), not per-employee. Initialized once in `CEOOrchestrator.__init__()` with path `.autogenesis/changelog.md`.
 
 ## CLI Integration
 
@@ -261,22 +331,31 @@ packages/cli/src/autogenesis_cli/app.py
   — Register ceo_app sub-typer
 
 packages/core/src/autogenesis_core/events.py
-  — Add CEO event types (CEO_GOAL_START, CEO_SUBTASK_ASSIGN, CEO_SUBTASK_COMPLETE,
-    CEO_SUBTASK_FAIL, CEO_ESCALATION, CEO_GOAL_COMPLETE)
+  — Add CEO event types following existing dot-notation convention:
+    CEO_GOAL_START = "ceo.goal.start"
+    CEO_SUBTASK_ASSIGN = "ceo.subtask.assign"
+    CEO_SUBTASK_COMPLETE = "ceo.subtask.complete"
+    CEO_SUBTASK_FAIL = "ceo.subtask.fail"
+    CEO_ESCALATION = "ceo.escalation"
+    CEO_GOAL_COMPLETE = "ceo.goal.complete"
+
+packages/core/src/autogenesis_core/config.py
+  — Add dispatch_timeout: float = 300.0 to EmployeesConfig
 ```
 
 ### Data Directory
 
 ```
 .autogenesis/
+  changelog.md              — shared team changelog
   ceo/
-    ceo.db
+    ceo.db                  — task queue, goals, executions
     plans/
-      goal-{id}.md
+      goal-{id}.md          — decomposed plans
   employees/
     {employee_id}/
-      brain.db
-      inbox.db
+      brain.db              — per-employee persistent memory
+      inbox.db              — per-employee message queue
 ```
 
 ## Testing Strategy
