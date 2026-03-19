@@ -65,9 +65,9 @@ class SubAgentManager:
     def _build_cmd_args(self, task: str, prompt_file: str | None) -> list[str]:
         """Build the command argument list."""
         if self._codex_binary == "codex":
-            cmd_args = [self._codex_binary, "--quiet", "--full-auto"]
+            cmd_args = [self._codex_binary, "exec", "--full-auto"]
             if prompt_file:
-                cmd_args.extend(["--system-prompt-file", prompt_file])
+                cmd_args.extend(["-c", f"model_instructions_file={prompt_file}"])
             cmd_args.append(task)
         else:
             cmd_args = [self._codex_binary, task] if task else [self._codex_binary]

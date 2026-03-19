@@ -13,7 +13,6 @@ from typing import TYPE_CHECKING, Any
 
 import structlog
 from autogenesis_core.events import Event, EventType, get_event_bus
-from autogenesis_core.models import Message
 
 from autogenesis_employees.ceo_models import (
     GoalResult,
@@ -140,10 +139,15 @@ class CEOOrchestrator:
     # --- LLM calls ---
 
     async def _codex_call(self, instructions: str, user_message: str) -> str:
-        """Make a reasoning call to Codex and return the text."""
-        messages = [Message(role="user", content=user_message)]
-        result = await self._codex.create_response_sync(messages, instructions=instructions)
-        return result.text
+        """Make a reasoning call via codex exec subprocess."""
+        prompt = f"{instructions}\n\n{user_message}"
+        result = await self._sub_agent_mgr.spawn(
+            task=prompt,
+            cwd=str(self._project_root),
+            timeout=self._dispatch_timeout,
+            system_prompt=instructions,
+        )
+        return result.output
 
     async def _codex_call_json(self, instructions: str, user_message: str) -> Any:  # noqa: ANN401
         """Make a reasoning call and extract JSON. Retries once on parse failure."""

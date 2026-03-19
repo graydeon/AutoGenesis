@@ -10,12 +10,6 @@ import pytest
 from autogenesis_employees.orchestrator import CEOOrchestrator
 
 
-def _mock_codex_result(text: str):
-    result = MagicMock()
-    result.text = text
-    return result
-
-
 def _mock_spawn_success(output: str = "Done"):
     result = MagicMock()
     result.output = output
@@ -53,8 +47,8 @@ def mock_deps(tmp_path):
     sub_agent_mgr = MagicMock()
     sub_agent_mgr.spawn = AsyncMock(return_value=_mock_spawn_success())
 
+    # codex is still accepted by CEOOrchestrator.__init__ but no longer used
     codex = MagicMock()
-    codex.create_response_sync = AsyncMock()
 
     return {
         "registry": registry,
@@ -76,18 +70,18 @@ class TestCEOOrchestrator:
         await orch.close()
 
     async def test_run_single_subtask_goal(self, mock_deps):
-        codex = mock_deps["codex"]
+        sub = mock_deps["sub_agent_mgr"]
         decompose_json = json.dumps(
             [{"description": "Build the endpoint", "rationale": "Only task"}]
         )
         assign_json = json.dumps({"employee_id": "backend-engineer", "reasoning": "best fit"})
-        reevaluate_json = json.dumps({"no_changes": True})
 
-        codex.create_response_sync = AsyncMock(
+        # Single subtask: decompose → assign → dispatch (no re-evaluate, remaining is empty)
+        sub.spawn = AsyncMock(
             side_effect=[
-                _mock_codex_result(decompose_json),
-                _mock_codex_result(assign_json),
-                _mock_codex_result(reevaluate_json),
+                _mock_spawn_success(decompose_json),  # 1. decompose
+                _mock_spawn_success(assign_json),  # 2. assign
+                _mock_spawn_success("Done"),  # 3. employee dispatch
             ]
         )
 
@@ -100,55 +94,64 @@ class TestCEOOrchestrator:
         await orch.close()
 
     async def test_run_with_retry_on_failure(self, mock_deps):
-        codex = mock_deps["codex"]
         sub = mock_deps["sub_agent_mgr"]
 
         decompose_json = json.dumps([{"description": "Build API"}])
         assign_json = json.dumps({"employee_id": "backend-engineer", "reasoning": "best"})
-        reevaluate_json = json.dumps({"no_changes": True})
 
-        codex.create_response_sync = AsyncMock(
+        # Single subtask: decompose → assign → dispatch-fail → dispatch-retry-ok
+        # No re-evaluate since remaining is empty after the one subtask
+        sub.spawn = AsyncMock(
             side_effect=[
-                _mock_codex_result(decompose_json),
-                _mock_codex_result(assign_json),
-                _mock_codex_result(reevaluate_json),
+                _mock_spawn_success(decompose_json),  # 1. decompose
+                _mock_spawn_success(assign_json),  # 2. assign
+                _mock_spawn_failure(),  # 3. dispatch (fail)
+                _mock_spawn_success("Done"),  # 4. dispatch retry (success)
             ]
         )
-        sub.spawn = AsyncMock(side_effect=[_mock_spawn_failure(), _mock_spawn_success()])
 
         orch = CEOOrchestrator(**mock_deps)
         await orch.initialize()
         result = await orch.run("Build API")
         assert result.status == "completed"
-        assert sub.spawn.call_count == 2
+        # spawn called 4 times: decompose + assign + fail + retry
+        assert sub.spawn.call_count == 4
         await orch.close()
 
     async def test_run_escalation_after_two_failures(self, mock_deps):
-        codex = mock_deps["codex"]
         sub = mock_deps["sub_agent_mgr"]
 
         decompose_json = json.dumps([{"description": "Build API"}])
         assign_json = json.dumps({"employee_id": "backend-engineer", "reasoning": "best"})
 
-        codex.create_response_sync = AsyncMock(
+        # decompose → assign → dispatch-fail → dispatch-retry-fail → escalated
+        sub.spawn = AsyncMock(
             side_effect=[
-                _mock_codex_result(decompose_json),
-                _mock_codex_result(assign_json),
+                _mock_spawn_success(decompose_json),  # 1. decompose
+                _mock_spawn_success(assign_json),  # 2. assign
+                _mock_spawn_failure(),  # 3. dispatch (fail)
+                _mock_spawn_failure(),  # 4. dispatch retry (fail) → escalate
             ]
         )
-        sub.spawn = AsyncMock(return_value=_mock_spawn_failure())
 
         orch = CEOOrchestrator(**mock_deps)
         await orch.initialize()
         result = await orch.run("Build API")
         assert result.status == "escalated"
-        assert sub.spawn.call_count == 2
+        assert sub.spawn.call_count == 4
         await orch.close()
 
     async def test_dispatch_standalone_task(self, mock_deps):
-        codex = mock_deps["codex"]
+        sub = mock_deps["sub_agent_mgr"]
         assign_json = json.dumps({"employee_id": "backend-engineer", "reasoning": "best"})
-        codex.create_response_sync = AsyncMock(return_value=_mock_codex_result(assign_json))
+
+        # dispatch(): assign (reasoning spawn) → employee dispatch (spawn)
+        sub.spawn = AsyncMock(
+            side_effect=[
+                _mock_spawn_success(assign_json),  # 1. assign
+                _mock_spawn_success("Done"),  # 2. employee dispatch
+            ]
+        )
 
         orch = CEOOrchestrator(**mock_deps)
         await orch.initialize()
@@ -159,9 +162,15 @@ class TestCEOOrchestrator:
         await orch.close()
 
     async def test_dispatch_next_from_queue(self, mock_deps):
-        codex = mock_deps["codex"]
+        sub = mock_deps["sub_agent_mgr"]
         assign_json = json.dumps({"employee_id": "backend-engineer", "reasoning": "best"})
-        codex.create_response_sync = AsyncMock(return_value=_mock_codex_result(assign_json))
+
+        sub.spawn = AsyncMock(
+            side_effect=[
+                _mock_spawn_success(assign_json),  # 1. assign (picks highest priority)
+                _mock_spawn_success("Done"),  # 2. employee dispatch
+            ]
+        )
 
         orch = CEOOrchestrator(**mock_deps)
         await orch.initialize()
@@ -180,23 +189,25 @@ class TestCEOOrchestrator:
         await orch.close()
 
     async def test_resume_continues_from_escalated(self, mock_deps):
-        codex = mock_deps["codex"]
         sub = mock_deps["sub_agent_mgr"]
 
         decompose_json = json.dumps([{"description": "Step 1"}, {"description": "Step 2"}])
         assign_json = json.dumps({"employee_id": "backend-engineer", "reasoning": "best"})
         reevaluate_json = json.dumps({"no_changes": True})
 
-        codex.create_response_sync = AsyncMock(
-            side_effect=[
-                _mock_codex_result(decompose_json),
-                _mock_codex_result(assign_json),
-                _mock_codex_result(reevaluate_json),
-                _mock_codex_result(assign_json),
-            ]
-        )
+        # First run (2 subtasks):
+        # decompose → assign-st1 → dispatch-st1-ok → reevaluate (remaining has st2)
+        # → assign-st2 → dispatch-st2-fail → dispatch-st2-retry-fail → escalated
         sub.spawn = AsyncMock(
-            side_effect=[_mock_spawn_success(), _mock_spawn_failure(), _mock_spawn_failure()]
+            side_effect=[
+                _mock_spawn_success(decompose_json),  # 1. decompose
+                _mock_spawn_success(assign_json),  # 2. assign st1
+                _mock_spawn_success("Done"),  # 3. dispatch st1 (success)
+                _mock_spawn_success(reevaluate_json),  # 4. re-evaluate (st2 still pending)
+                _mock_spawn_success(assign_json),  # 5. assign st2
+                _mock_spawn_failure(),  # 6. dispatch st2 (fail)
+                _mock_spawn_failure(),  # 7. dispatch st2 retry (fail) → escalate
+            ]
         )
 
         orch = CEOOrchestrator(**mock_deps)
@@ -205,31 +216,35 @@ class TestCEOOrchestrator:
         assert result.status == "escalated"
         goal_id = result.goal_id
 
-        codex.create_response_sync = AsyncMock(
+        # Resume: assign-st2 → dispatch-st2-ok (no re-evaluate, remaining empty)
+        sub.spawn = AsyncMock(
             side_effect=[
-                _mock_codex_result(assign_json),
-                _mock_codex_result(reevaluate_json),
+                _mock_spawn_success(assign_json),  # 1. assign st2
+                _mock_spawn_success("Done"),  # 2. dispatch st2 (success)
             ]
         )
-        sub.spawn = AsyncMock(return_value=_mock_spawn_success())
         resumed = await orch.resume(goal_id)
         assert resumed.status == "completed"
         assert resumed.goal_id == goal_id
         await orch.close()
 
     async def test_plan_markdown_created(self, mock_deps):
-        codex = mock_deps["codex"]
+        sub = mock_deps["sub_agent_mgr"]
         decompose_json = json.dumps([{"description": "Step 1"}, {"description": "Step 2"}])
         assign_json = json.dumps({"employee_id": "backend-engineer", "reasoning": "best"})
         reevaluate_json = json.dumps({"no_changes": True})
 
-        codex.create_response_sync = AsyncMock(
+        # 2 subtasks:
+        # decompose → assign-st1 → dispatch-st1-ok → reevaluate
+        # → assign-st2 → dispatch-st2-ok (no reevaluate, remaining empty)
+        sub.spawn = AsyncMock(
             side_effect=[
-                _mock_codex_result(decompose_json),
-                _mock_codex_result(assign_json),
-                _mock_codex_result(reevaluate_json),
-                _mock_codex_result(assign_json),
-                _mock_codex_result(reevaluate_json),
+                _mock_spawn_success(decompose_json),  # 1. decompose
+                _mock_spawn_success(assign_json),  # 2. assign st1
+                _mock_spawn_success("Done"),  # 3. dispatch st1
+                _mock_spawn_success(reevaluate_json),  # 4. re-evaluate
+                _mock_spawn_success(assign_json),  # 5. assign st2
+                _mock_spawn_success("Done"),  # 6. dispatch st2
             ]
         )
 
