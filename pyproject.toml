@@ -23,6 +23,7 @@ dev = [
     "autogenesis-plugins",
     "autogenesis-cli",
     "autogenesis-twitter",
+    "autogenesis-employees",
 ]
 
 [tool.uv.workspace]
@@ -38,6 +39,7 @@ autogenesis-mcp = { workspace = true }
 autogenesis-plugins = { workspace = true }
 autogenesis-cli = { workspace = true }
 autogenesis-twitter = { workspace = true }
+autogenesis-employees = { workspace = true }
 
 [tool.ruff]
 target-version = "py311"
@@ -61,6 +63,7 @@ ignore = [
 "**/mcp/**/*.py" = ["PLC0415"]  # lazy imports for MCP SDK
 "**/cli/**/*.py" = ["FBT", "PLC0415", "TC002"]  # Typer requires bool args, lazy imports, and type-only imports used at runtime
 "**/twitter/src/**/*.py" = ["ASYNC2"]
+"**/employees/src/**/*.py" = ["ASYNC2"]
 
 [tool.mypy]
 python_version = "3.11"
@@ -78,6 +81,7 @@ mypy_path = [
     "packages/plugins/src",
     "packages/cli/src",
     "packages/twitter/src",
+    "packages/employees/src",
 ]
 exclude = ["tests/", "packages/*/tests/"]
 
