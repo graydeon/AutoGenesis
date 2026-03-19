@@ -6,7 +6,7 @@ from autogenesis_core.events import Event, EventBus, EventType, get_event_bus
 
 
 class TestEventType:
-    def test_all_12_event_types_exist(self):
+    def test_all_15_event_types_exist(self):
         expected = {
             "loop.execution.start",
             "loop.execution.iteration",
@@ -20,10 +20,13 @@ class TestEventType:
             "prompt.version.change",
             "security.guardrail.alert",
             "context.window.truncation",
+            "auth.token.refresh",
+            "auth.login.success",
+            "auth.login.failed",
         }
         actual = {e.value for e in EventType}
         assert actual == expected
-        assert len(EventType) == 12
+        assert len(EventType) == 15
 
 
 class TestEvent:

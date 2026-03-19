@@ -37,13 +37,8 @@ class ContextManager:
         self._event_bus = event_bus
 
     def _estimate_tokens(self, message: Message) -> int:
-        """Return token count for a message, using estimate if not set."""
-        if message.token_count is not None:
-            return message.token_count
-        content = message.content
-        if isinstance(content, str):
-            return max(len(content) // 4, _DEFAULT_TOKEN_ESTIMATE)
-        return _DEFAULT_TOKEN_ESTIMATE
+        """Return token count estimate for a message based on content length."""
+        return max(len(message.content) // 4, _DEFAULT_TOKEN_ESTIMATE)
 
     def build_context(
         self,

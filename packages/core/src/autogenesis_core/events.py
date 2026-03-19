@@ -32,6 +32,9 @@ class EventType(StrEnum):
     PROMPT_VERSION_CHANGE = "prompt.version.change"
     SECURITY_GUARDRAIL_ALERT = "security.guardrail.alert"
     CONTEXT_WINDOW_TRUNCATION = "context.window.truncation"
+    AUTH_TOKEN_REFRESH = "auth.token.refresh"  # noqa: S105
+    AUTH_LOGIN_SUCCESS = "auth.login.success"
+    AUTH_LOGIN_FAILED = "auth.login.failed"
 
 
 class Event(BaseModel):
