@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import threading
 import time
 from typing import Any
@@ -15,7 +16,11 @@ _SPINNER_FRAMES = ["   ", ".  ", ".. ", "..."]
 
 
 class AgentLiveDisplay:
-    """Real-time dashboard of active sub-agents with animated spinners."""
+    """Real-time dashboard of active sub-agents with animated spinners.
+
+    Thread-safe: state mutations set a dirty flag, only the animation
+    thread touches Rich Live.update().
+    """
 
     def __init__(self) -> None:
         self._agents: dict[str, dict[str, Any]] = {}
@@ -24,6 +29,7 @@ class AgentLiveDisplay:
         self._live: Live | None = None
         self._phase = ""
         self._frame = 0
+        self._lock = threading.Lock()
         self._ticker: threading.Thread | None = None
         self._running = False
 
@@ -41,50 +47,53 @@ class AgentLiveDisplay:
         self._ticker.start()
 
     def _animation_loop(self) -> None:
-        """Background thread that ticks the animation forward."""
+        """Background thread — sole owner of Live.update()."""
         while self._running:
             time.sleep(0.25)
             self._frame += 1
-            self._refresh()
+            with self._lock, contextlib.suppress(Exception):
+                if self._live:
+                    self._live.update(self._render())
 
     def stop(self) -> None:
         """Stop the live display and animation."""
         self._running = False
         if self._ticker:
-            self._ticker.join(timeout=1)
+            self._ticker.join(timeout=2)
             self._ticker = None
         if self._live:
-            self._live.stop()
+            with contextlib.suppress(Exception):
+                self._live.stop()
             self._live = None
 
     def set_phase(self, phase: str) -> None:
         """Set the current orchestration phase."""
-        self._phase = phase
-        self._refresh()
+        with self._lock:
+            self._phase = phase
 
     def agent_start(self, label: str, task: str) -> None:
         """Mark an agent as active with its current task."""
-        self._agents[label] = {"task": task, "detail": ""}
-        self._refresh()
+        with self._lock:
+            self._agents[label] = {"task": task, "detail": ""}
 
     def agent_update(self, label: str, detail: str) -> None:
         """Update an agent's current activity detail."""
-        if label in self._agents:
-            self._agents[label]["detail"] = detail
-            self._refresh()
+        with self._lock:
+            if label in self._agents:
+                self._agents[label]["detail"] = detail
 
     def agent_done(self, label: str, result: str = "done") -> None:
         """Mark an agent as completed."""
-        if label in self._agents:
-            entry = self._agents.pop(label)
-            self._completed.append({"label": label, "task": entry["task"], "result": result})
-            self._refresh()
+        with self._lock:
+            if label in self._agents:
+                entry = self._agents.pop(label)
+                self._completed.append({"label": label, "task": entry["task"], "result": result})
 
     def _spinner(self) -> str:
         return _SPINNER_FRAMES[self._frame % len(_SPINNER_FRAMES)]
 
     def _render(self) -> Table:
-        """Render the current state as a Rich Table."""
+        """Render the current state as a Rich Table. Called under lock."""
         table = Table(
             show_header=False,
             show_edge=False,
@@ -105,7 +114,7 @@ class AgentLiveDisplay:
                 Text(self._phase, style="yellow"),
             )
 
-        for label, info in self._agents.items():
+        for label, info in list(self._agents.items()):
             detail = info["detail"] or info["task"]
             if len(detail) > 80:  # noqa: PLR2004
                 detail = detail[:77] + "..."
@@ -126,7 +135,3 @@ class AgentLiveDisplay:
             )
 
         return table
-
-    def _refresh(self) -> None:
-        if self._live:
-            self._live.update(self._render())

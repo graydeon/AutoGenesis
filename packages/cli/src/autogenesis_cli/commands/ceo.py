@@ -174,10 +174,14 @@ def ceo_run(  # noqa: C901, PLR0915
         display.start()
         try:
             result = await orch.run(goal)
-        except RuntimeError as e:
+        except (RuntimeError, KeyboardInterrupt, asyncio.CancelledError) as e:
             display.stop()
-            console.print(f"[red]Error:[/red] {e}")
+            await orch._sub_agent_mgr.cancel_all()  # noqa: SLF001
             await orch.close()
+            if isinstance(e, RuntimeError):
+                console.print(f"[red]Error:[/red] {e}")
+            else:
+                console.print("\n[yellow]Cancelled.[/yellow]")
             return
         finally:
             display.stop()
@@ -206,7 +210,11 @@ def ceo_run(  # noqa: C901, PLR0915
         console.print(f"\nPlan: {result.plan_path}")
         await orch.close()
 
-    _run_async(_run())
+    try:
+        _run_async(_run())
+    except KeyboardInterrupt:
+        display.stop()
+        console.print("\n[yellow]Cancelled.[/yellow]")
 
 
 @ceo_app.command(name="dispatch")
