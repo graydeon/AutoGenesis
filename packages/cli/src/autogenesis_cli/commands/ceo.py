@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 
 import typer
 from rich.console import Console
@@ -16,8 +17,49 @@ ceo_app = typer.Typer(
     no_args_is_help=True,
 )
 
+# Patterns to extract meaningful status from Codex CLI output
+_TOOL_CALL_RE = re.compile(r"(shell|file_read|file_write|file_edit|glob|grep|list_dir|think)\b")
+_SKIP_PREFIXES = (
+    "OpenAI Codex",
+    "--------",
+    "workdir:",
+    "model:",
+    "provider:",
+    "approval:",
+    "sandbox:",
+    "reasoning",
+    "session id:",
+    "mcp:",
+    "tokens used",
+    "user",
+    "",
+)
 
-def _get_orchestrator():  # noqa: ANN202
+
+def _make_output_handler(display):  # noqa: ANN001, ANN202
+    """Create an on_output callback that feeds the live display."""
+
+    def handler(label: str, line: str) -> None:
+        stripped = line.strip()
+        # Skip Codex boilerplate
+        if any(stripped.startswith(p) for p in _SKIP_PREFIXES):
+            return
+        if stripped.startswith("codex"):
+            display.agent_update(label, "thinking...")
+            return
+        # Detect tool calls
+        tool_match = _TOOL_CALL_RE.search(stripped)
+        if tool_match:
+            display.agent_update(label, f"calling {tool_match.group(0)}...")
+            return
+        # Meaningful content — show truncated
+        if len(stripped) > 5:  # noqa: PLR2004
+            display.agent_update(label, stripped[:80])
+
+    return handler
+
+
+def _get_orchestrator(display=None):  # noqa: ANN001, ANN202
     """Lazy-build a CEOOrchestrator with real dependencies."""
     import os
     from pathlib import Path
@@ -50,10 +92,12 @@ def _get_orchestrator():  # noqa: ANN202
         ),
     )
 
+    on_output = _make_output_handler(display) if display else None
+
     return CEOOrchestrator(
         registry=registry,
         runtime=EmployeeRuntime(),
-        sub_agent_mgr=SubAgentManager(stream_output=True),
+        sub_agent_mgr=SubAgentManager(on_output=on_output),
         codex=codex,
         dispatch_timeout=cfg.employees.dispatch_timeout,
     )
@@ -82,44 +126,85 @@ def ceo_enqueue(
 
 
 @ceo_app.command(name="run")
-def ceo_run(
+def ceo_run(  # noqa: C901, PLR0915
     goal: str = typer.Argument(help="High-level goal to decompose and execute"),
 ) -> None:
     """Decompose a goal and execute via employee dispatch."""
+    from autogenesis_core.events import EventType, get_event_bus
+
+    from autogenesis_cli.live_display import AgentLiveDisplay
+
+    display = AgentLiveDisplay()
+
+    def _on_event(event) -> None:  # noqa: ANN001
+        et = event.event_type
+        data = event.data
+        if et == EventType.CEO_GOAL_START:
+            display.set_phase(f"Decomposing: {data.get('goal', '')[:60]}")
+        elif et == EventType.CEO_SUBTASK_ASSIGN:
+            emp = data.get("employee_id", "?")
+            task = data.get("subtask", "")[:60]
+            display.set_phase("")
+            display.agent_start(emp, task)
+        elif et == EventType.CEO_SUBTASK_COMPLETE:
+            emp = data.get("employee_id", "?")
+            display.agent_done(emp, "completed")
+        elif et == EventType.CEO_SUBTASK_FAIL:
+            emp = data.get("employee_id", "?")
+            display.agent_done(emp, "FAILED — retrying...")
+        elif et == EventType.CEO_ESCALATION:
+            display.set_phase("ESCALATED — needs manual intervention")
+        elif et == EventType.CEO_GOAL_COMPLETE:
+            display.set_phase("")
+
+    bus = get_event_bus()
+    for et in (
+        EventType.CEO_GOAL_START,
+        EventType.CEO_SUBTASK_ASSIGN,
+        EventType.CEO_SUBTASK_COMPLETE,
+        EventType.CEO_SUBTASK_FAIL,
+        EventType.CEO_ESCALATION,
+        EventType.CEO_GOAL_COMPLETE,
+    ):
+        bus.subscribe(et, _on_event)
 
     async def _run() -> None:
-        orch = _get_orchestrator()
+        orch = _get_orchestrator(display=display)
         await orch.initialize()
+        display.start()
         try:
             result = await orch.run(goal)
-            if result.status == "completed":
-                console.print("\n[bold green]Goal completed![/bold green]")
-            else:
-                console.print("\n[bold red]Goal escalated — needs manual intervention.[/bold red]")
-
-            table = Table(title="Subtask Results")
-            table.add_column("Subtask")
-            table.add_column("Employee")
-            table.add_column("Status")
-            table.add_column("Attempt")
-            table.add_column("Duration")
-
-            for sr in result.subtask_results:
-                style = "green" if sr.status == "completed" else "red"
-                table.add_row(
-                    sr.subtask[:60],
-                    sr.employee_id,
-                    sr.status,
-                    str(sr.attempt),
-                    f"{sr.duration_seconds:.1f}s",
-                    style=style,
-                )
-            console.print(table)
-            console.print(f"\nPlan: {result.plan_path}")
         except RuntimeError as e:
+            display.stop()
             console.print(f"[red]Error:[/red] {e}")
-        finally:
             await orch.close()
+            return
+        finally:
+            display.stop()
+
+        if result.status == "completed":
+            console.print("\n[bold green]Goal completed![/bold green]")
+        else:
+            console.print("\n[bold red]Goal escalated.[/bold red]")
+
+        table = Table(title="Subtask Results")
+        table.add_column("Subtask", max_width=50)
+        table.add_column("Employee")
+        table.add_column("Status")
+        table.add_column("Time")
+
+        for sr in result.subtask_results:
+            style = "green" if sr.status == "completed" else "red"
+            table.add_row(
+                sr.subtask[:50],
+                sr.employee_id,
+                sr.status,
+                f"{sr.duration_seconds:.1f}s",
+                style=style,
+            )
+        console.print(table)
+        console.print(f"\nPlan: {result.plan_path}")
+        await orch.close()
 
     _run_async(_run())
 
@@ -129,23 +214,31 @@ def ceo_dispatch(
     task_id: str = typer.Argument(None, help="Specific task ID (or dispatches highest priority)"),
 ) -> None:
     """Execute next queued task or a specific one."""
+    from autogenesis_cli.live_display import AgentLiveDisplay
+
+    display = AgentLiveDisplay()
 
     async def _run() -> None:
-        orch = _get_orchestrator()
+        orch = _get_orchestrator(display=display)
         await orch.initialize()
+        display.start()
+        display.set_phase("Assigning task...")
         try:
             result = await orch.dispatch(task_id)
-            style = "green" if result.status == "completed" else "red"
-            console.print(
-                f"[{style}]{result.status}[/{style}]"
-                f" — {result.employee_id} ({result.duration_seconds:.1f}s)"
-            )
-            if result.output:
-                console.print(result.output[:500])
         except RuntimeError as e:
+            display.stop()
             console.print(f"[red]Error:[/red] {e}")
-        finally:
             await orch.close()
+            return
+        finally:
+            display.stop()
+
+        style = "green" if result.status == "completed" else "red"
+        console.print(
+            f"[{style}]{result.status}[/{style}]"
+            f" — {result.employee_id} ({result.duration_seconds:.1f}s)"
+        )
+        await orch.close()
 
     _run_async(_run())
 
@@ -232,17 +325,26 @@ def ceo_resume(
     goal_id: str = typer.Argument(help="Goal ID to resume"),
 ) -> None:
     """Resume an escalated or paused goal."""
+    from autogenesis_cli.live_display import AgentLiveDisplay
+
+    display = AgentLiveDisplay()
 
     async def _run() -> None:
-        orch = _get_orchestrator()
+        orch = _get_orchestrator(display=display)
         await orch.initialize()
+        display.start()
         try:
             result = await orch.resume(goal_id)
-            style = "green" if result.status == "completed" else "red"
-            console.print(f"[{style}]Goal {result.status}[/{style}]")
         except RuntimeError as e:
+            display.stop()
             console.print(f"[red]Error:[/red] {e}")
-        finally:
             await orch.close()
+            return
+        finally:
+            display.stop()
+
+        style = "green" if result.status == "completed" else "red"
+        console.print(f"[{style}]Goal {result.status}[/{style}]")
+        await orch.close()
 
     _run_async(_run())

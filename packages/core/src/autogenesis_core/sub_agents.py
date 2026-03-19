@@ -12,6 +12,10 @@ import os
 import sys
 import tempfile
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 import structlog
 from pydantic import BaseModel
@@ -41,10 +45,12 @@ class SubAgentManager:
         max_concurrent: int = 3,
         codex_binary: str = "codex",
         stream_output: bool = False,  # noqa: FBT001, FBT002
+        on_output: Callable[[str, str], None] | None = None,
     ) -> None:
         self.max_concurrent = max_concurrent
         self._codex_binary = codex_binary
         self._stream_output = stream_output
+        self._on_output = on_output
         self._semaphore = asyncio.Semaphore(max_concurrent)
         self._active: dict[str, asyncio.subprocess.Process] = {}
 
@@ -81,7 +87,7 @@ class SubAgentManager:
         proc: asyncio.subprocess.Process,
         label: str,
     ) -> str:
-        """Read stdout line by line, optionally streaming to terminal."""
+        """Read stdout line by line, calling on_output for each line."""
         chunks: list[str] = []
         total_chars = 0
         assert proc.stdout is not None  # noqa: S101
@@ -93,7 +99,9 @@ class SubAgentManager:
             total_chars += len(decoded)
             if total_chars <= _MAX_OUTPUT_CHARS:
                 chunks.append(decoded)
-            if self._stream_output:
+            if self._on_output:
+                self._on_output(label, decoded.rstrip())
+            elif self._stream_output:
                 sys.stderr.write(f"  [{label}] {decoded}")
                 sys.stderr.flush()
         output = "".join(chunks)
