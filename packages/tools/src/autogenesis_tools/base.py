@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 import structlog
 from autogenesis_core.events import Event, EventType, get_event_bus
-from autogenesis_core.models import ModelTier, ToolDefinition
+from autogenesis_core.models import ToolDefinition
 
 if TYPE_CHECKING:
     from autogenesis_core.models import ToolCall
@@ -40,11 +40,6 @@ class Tool(ABC):
         return False
 
     @property
-    def tier_requirement(self) -> ModelTier:
-        """Minimum model tier required."""
-        return ModelTier.FAST
-
-    @property
     def token_cost_estimate(self) -> int:
         """Estimated tokens for tool definition in context."""
         return 0
@@ -55,10 +50,17 @@ class Tool(ABC):
             name=self.name,
             description=self.description,
             parameters=self.parameters,
-            tier_requirement=self.tier_requirement,
             token_cost_estimate=self.token_cost_estimate,
-            hidden=self.hidden,
         )
+
+    def to_responses_api_format(self) -> dict[str, Any]:
+        """Convert tool to Responses API function format."""
+        return {
+            "type": "function",
+            "name": self.name,
+            "description": self.description,
+            "parameters": self.parameters,
+        }
 
     async def __call__(self, tool_call: ToolCall) -> str:
         """Execute tool with event emission and error handling."""

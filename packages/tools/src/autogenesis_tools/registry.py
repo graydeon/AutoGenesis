@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import structlog
 
 if TYPE_CHECKING:
-    from autogenesis_core.models import ModelTier, ToolDefinition
+    from autogenesis_core.models import ToolDefinition
 
     from autogenesis_tools.base import Tool
 
@@ -46,7 +46,6 @@ class ToolRegistry:
     def get_definitions_for_context(
         self,
         token_budget: int = 10_000,
-        tier: ModelTier | None = None,
         required_tools: list[str] | None = None,
     ) -> list[ToolDefinition]:
         """Get tool definitions that fit within token budget.
@@ -70,10 +69,6 @@ class ToolRegistry:
         for tool in sorted_tools:
             # Skip hidden tools
             if tool.hidden and tool.name not in required:
-                continue
-
-            # Check tier requirement
-            if tier is not None and tool.tier_requirement > tier:
                 continue
 
             defn = tool.to_definition()

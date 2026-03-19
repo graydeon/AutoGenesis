@@ -43,4 +43,3 @@ class TestBashTool:
         tool = BashTool()
         defn = tool.to_definition()
         assert defn.name == "bash"
-        assert defn.hidden is False

@@ -1,10 +1,30 @@
-"""Tests for web, think, agent, interactive, and mcp tools."""
+"""Tests for think and agent tools."""
 
 from __future__ import annotations
 
+from typing import Any
+
 from autogenesis_core.models import ToolCall
 from autogenesis_tools.agent import SubAgentTool
-from autogenesis_tools.web import ThinkTool, WebFetchTool
+from autogenesis_tools.base import Tool
+from autogenesis_tools.think import ThinkTool
+
+
+class FakeTool(Tool):
+    @property
+    def name(self) -> str:
+        return "fake"
+
+    @property
+    def description(self) -> str:
+        return "A fake tool"
+
+    @property
+    def parameters(self) -> dict[str, Any]:
+        return {"type": "object", "properties": {}}
+
+    async def execute(self, arguments: dict[str, Any]) -> str:
+        return "ok"
 
 
 class TestThinkTool:
@@ -18,28 +38,27 @@ class TestThinkTool:
         tool = ThinkTool()
         defn = tool.to_definition()
         assert defn.name == "think"
-        assert defn.hidden is False
-
-
-class TestWebFetchTool:
-    async def test_web_fetch_disabled(self):
-        tool = WebFetchTool()
-        tc = ToolCall(name="web_fetch", arguments={"url": "https://example.com"})
-        result = await tool(tc)
-        assert "disabled" in result.lower()
-
-    async def test_web_fetch_hidden(self):
-        tool = WebFetchTool()
-        assert tool.hidden is True
 
 
 class TestSubAgentTool:
-    async def test_sub_agent_returns_error(self):
+    async def test_sub_agent_not_configured(self):
         tool = SubAgentTool()
         tc = ToolCall(name="sub_agent", arguments={"task": "do something"})
         result = await tool(tc)
-        assert "v0.3.0" in result
+        assert "not configured" in result.lower() or "error" in result.lower()
 
-    async def test_sub_agent_hidden(self):
-        tool = SubAgentTool()
-        assert tool.hidden is True
+
+class TestToolResponsesFormat:
+    def test_format_structure(self):
+        """Tool.to_responses_api_format() returns Responses API tool schema."""
+        tool = FakeTool()
+        fmt = tool.to_responses_api_format()
+        assert fmt["type"] == "function"
+        assert fmt["name"] == tool.name
+        assert fmt["description"] == tool.description
+        assert "parameters" in fmt
+
+    def test_no_tier_requirement(self):
+        """tier_requirement property is removed."""
+        tool = FakeTool()
+        assert not hasattr(tool, "tier_requirement")

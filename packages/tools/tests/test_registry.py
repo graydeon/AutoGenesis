@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from autogenesis_core.models import ModelTier
 from autogenesis_tools.base import Tool
 from autogenesis_tools.registry import ToolRegistry
 
@@ -44,7 +43,6 @@ class TestToolRegistry:
         registry = ToolRegistry()
         tool = FakeTool("bash")
         registry.register(tool)
-
         assert registry.get("bash") is tool
         assert registry.get("nonexistent") is None
 
@@ -52,7 +50,6 @@ class TestToolRegistry:
         registry = ToolRegistry()
         registry.register(FakeTool("bash"))
         registry.register(FakeTool("file_read"))
-
         names = registry.list_names()
         assert "bash" in names
         assert "file_read" in names
@@ -61,21 +58,17 @@ class TestToolRegistry:
         registry = ToolRegistry()
         for i in range(20):
             registry.register(FakeTool(f"tool_{i}", cost=100))
-
         defs = registry.get_definitions_for_context(token_budget=500)
-
-        assert len(defs) <= 5  # 500 / 100 = 5
+        assert len(defs) <= 5
 
     def test_required_tools_always_included(self):
         registry = ToolRegistry()
         registry.register(FakeTool("bash", cost=100))
         registry.register(FakeTool("important", cost=100))
-
         defs = registry.get_definitions_for_context(
             token_budget=50,
             required_tools=["important"],
         )
-
         names = [d.name for d in defs]
         assert "important" in names
 
@@ -83,9 +76,7 @@ class TestToolRegistry:
         registry = ToolRegistry()
         registry.register(FakeTool("visible", cost=100))
         registry.register(FakeTool("hidden_tool", hidden=True, cost=100))
-
         defs = registry.get_definitions_for_context(token_budget=10_000)
-
         names = [d.name for d in defs]
         assert "visible" in names
         assert "hidden_tool" not in names
@@ -94,36 +85,11 @@ class TestToolRegistry:
         registry = ToolRegistry()
         registry.register(FakeTool("rarely_used", cost=100))
         registry.register(FakeTool("often_used", cost=100))
-
-        # Record usage
         for _ in range(10):
             registry.record_usage("often_used")
-
         defs = registry.get_definitions_for_context(token_budget=150)
-
-        # Should prioritize often_used due to budget
         names = [d.name for d in defs]
         assert "often_used" in names
-
-    def test_tier_filtering(self):
-        registry = ToolRegistry()
-
-        class PremiumTool(FakeTool):
-            @property
-            def tier_requirement(self) -> ModelTier:
-                return ModelTier.PREMIUM
-
-        registry.register(FakeTool("basic"))
-        registry.register(PremiumTool("premium_only"))
-
-        defs = registry.get_definitions_for_context(
-            token_budget=10_000,
-            tier=ModelTier.FAST,
-        )
-
-        names = [d.name for d in defs]
-        assert "basic" in names
-        assert "premium_only" not in names
 
     def test_empty_registry(self):
         registry = ToolRegistry()
