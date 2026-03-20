@@ -46,11 +46,13 @@ class SubAgentManager:
         codex_binary: str = "codex",
         stream_output: bool = False,  # noqa: FBT001, FBT002
         on_output: Callable[[str, str], None] | None = None,
+        extra_flags: list[str] | None = None,
     ) -> None:
         self.max_concurrent = max_concurrent
         self._codex_binary = codex_binary
         self._stream_output = stream_output
         self._on_output = on_output
+        self._extra_flags = extra_flags or []
         self._semaphore = asyncio.Semaphore(max_concurrent)
         self._active: dict[str, asyncio.subprocess.Process] = {}
 
@@ -74,7 +76,7 @@ class SubAgentManager:
     def _build_cmd_args(self, task: str, prompt_file: str | None) -> list[str]:
         """Build the command argument list."""
         if self._codex_binary == "codex":
-            cmd_args = [self._codex_binary, "exec", "--full-auto"]
+            cmd_args = [self._codex_binary, "exec", "--full-auto", *self._extra_flags]
             if prompt_file:
                 cmd_args.extend(["-c", f"model_instructions_file={prompt_file}"])
             cmd_args.append(task)

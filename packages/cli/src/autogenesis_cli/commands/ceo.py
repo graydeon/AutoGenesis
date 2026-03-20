@@ -94,12 +94,29 @@ def _get_orchestrator(display=None):  # noqa: ANN001, ANN202
 
     on_output = _make_output_handler(display) if display else None
 
+    # Lightweight manager for CEO reasoning (decompose/assign) — cheap model, no MCP
+    reasoning_mgr = SubAgentManager(
+        max_concurrent=3,
+        on_output=on_output,
+        extra_flags=[
+            "--ephemeral",
+            "--skip-git-repo-check",
+            "-m",
+            "o4-mini",
+            "-c",
+            "reasoning_effort=low",
+            "-c",
+            "mcp_servers={}",
+        ],
+    )
+
     return CEOOrchestrator(
         registry=registry,
         runtime=EmployeeRuntime(),
         sub_agent_mgr=SubAgentManager(max_concurrent=5, on_output=on_output),
         codex=codex,
         dispatch_timeout=cfg.employees.dispatch_timeout,
+        reasoning_mgr=reasoning_mgr,
     )
 
 

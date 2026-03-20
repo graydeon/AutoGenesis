@@ -61,10 +61,12 @@ class CEOOrchestrator:
         codex: CodexClient,
         base_dir: Path | None = None,
         dispatch_timeout: float = 300.0,
+        reasoning_mgr: SubAgentManager | None = None,
     ) -> None:
         self._registry = registry
         self._runtime = runtime
         self._sub_agent_mgr = sub_agent_mgr
+        self._reasoning_mgr = reasoning_mgr or sub_agent_mgr
         self._codex = codex
         self._dispatch_timeout = dispatch_timeout
         self._project_root = _find_project_root()
@@ -150,9 +152,9 @@ class CEOOrchestrator:
     async def _codex_call(
         self, instructions: str, user_message: str, label: str = "ceo-reasoning"
     ) -> str:
-        """Make a reasoning call via codex exec subprocess."""
+        """Make a lightweight reasoning call via the reasoning SubAgentManager."""
         prompt = f"{instructions}\n\n{user_message}"
-        result = await self._sub_agent_mgr.spawn(
+        result = await self._reasoning_mgr.spawn(
             task=prompt,
             cwd=str(self._project_root),
             timeout=self._dispatch_timeout,
