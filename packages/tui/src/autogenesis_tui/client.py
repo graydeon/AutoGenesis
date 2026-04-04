@@ -34,10 +34,11 @@ class CodexWSClient:
         logger.info("codex_ws_connected", port=self._port)
 
     async def _receive_loop(self) -> None:
-        if self._ws is None:
+        ws = self._ws
+        if ws is None:
             return
         try:
-            async for raw in self._ws:
+            async for raw in ws:
                 data: dict[str, Any] = json.loads(raw)
                 msg_id = str(data.get("id", ""))
                 if msg_id and msg_id in self._pending:
@@ -62,13 +63,14 @@ class CodexWSClient:
         self._on_event({"method": method, "params": params})
 
     async def _request(self, method: str, params: dict[str, Any]) -> Any:
-        if self._ws is None:
+        ws = self._ws
+        if ws is None:
             raise RuntimeError("WebSocket not connected. Call connect() first.")
         req_id = uuid.uuid4().hex
         loop = asyncio.get_running_loop()
         fut: asyncio.Future[Any] = loop.create_future()
         self._pending[req_id] = fut
-        await self._ws.send(json.dumps({
+        await ws.send(json.dumps({
             "jsonrpc": "2.0",
             "id": req_id,
             "method": method,
@@ -89,8 +91,9 @@ class CodexWSClient:
             params["cwd"] = cwd
         result = await self._request("thread/start", params)
         thread = result.get("thread", result)
-        self._active_thread_id = thread.get("id", "")
-        return self._active_thread_id
+        thread_id: str = thread.get("id", "")
+        self._active_thread_id = thread_id
+        return thread_id
 
     async def send_turn(self, thread_id: str, text: str) -> None:
         """Send a user turn."""
