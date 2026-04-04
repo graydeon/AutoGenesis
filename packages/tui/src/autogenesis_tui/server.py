@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import socket
+from typing import cast
 
 import structlog
 
@@ -21,7 +22,7 @@ class AppServerManager:
     def _find_free_port() -> int:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind(("127.0.0.1", 0))
-            return s.getsockname()[1]
+            return cast(int, s.getsockname()[1])
 
     async def start(self) -> int:
         """Spawn codex app-server. Returns the bound port."""
@@ -46,7 +47,7 @@ class AppServerManager:
         self._process.terminate()
         try:
             await asyncio.wait_for(self._process.wait(), timeout=5.0)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             self._process.kill()
         logger.info("app_server_stopped")
         self._process = None
