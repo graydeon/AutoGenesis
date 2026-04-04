@@ -1,11 +1,16 @@
 from __future__ import annotations
 
-from textual.app import ComposeResult
+from typing import TYPE_CHECKING, ClassVar
+
 from textual.binding import Binding
 from textual.message import Message
 from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import Input, Static
+
+if TYPE_CHECKING:
+    from textual.app import ComposeResult
+    from textual.events import Click
 
 
 class InputBar(Widget):
@@ -30,7 +35,7 @@ class InputBar(Widget):
     }
     """
 
-    BINDINGS = [
+    BINDINGS: ClassVar[list[Binding]] = [
         Binding("ctrl+space", "toggle_target_menu", "Switch target", show=False),
     ]
 
@@ -65,6 +70,11 @@ class InputBar(Widget):
             return
         self._target_index = (self._target_index + 1) % len(self.targets)
         self.set_target(self.targets[self._target_index])
+
+    def on_static_click(self, event: Click) -> None:
+        """Clicking the target label cycles through available targets."""
+        self.action_toggle_target_menu()
+        event.stop()
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         text = event.value.strip()

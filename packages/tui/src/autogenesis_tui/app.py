@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import structlog
 from textual.app import App, ComposeResult
@@ -20,7 +20,6 @@ from autogenesis_tui.widgets import (
     StatusBar,
 )
 from autogenesis_tui.widgets.roster import EmployeeRow
-from autogenesis_tui.widgets.right_panel import GoalEntry
 
 logger = structlog.get_logger()
 
@@ -52,16 +51,18 @@ class AutogenesisApp(App[None]):
     }
     EmployeeRoster {
         width: 22;
+        border-right: solid $border;
     }
     AgentStream {
         width: 1fr;
     }
     RightPanel {
-        width: 24;
+        width: 26;
+        border-left: solid $border;
     }
     """
 
-    BINDINGS = [
+    BINDINGS: ClassVar[list[Binding]] = [
         Binding("ctrl+g", "new_goal", "New Goal"),
         Binding("ctrl+n", "new_thread", "New Thread"),
         Binding("t", "theme_picker", "Theme", show=False),
@@ -70,7 +71,7 @@ class AutogenesisApp(App[None]):
         Binding("question_mark", "help", "Help", show=False),
     ]
 
-    def __init__(self, auto_start: bool = True, theme_name: str = "dracula") -> None:
+    def __init__(self, *, auto_start: bool = True, theme_name: str = "dracula") -> None:
         super().__init__()
         self._auto_start = auto_start
         self._theme_name = theme_name
@@ -114,14 +115,14 @@ class AutogenesisApp(App[None]):
                 cwd=str(Path.cwd()),
             )
             status.update_connection("connected")
-        except Exception as exc:
-            logger.error("app_server_start_failed", exc=str(exc))
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("app_server_start_failed", exc=str(exc))
             status.update_connection("disconnected")
 
     async def _load_employees(self) -> None:
         try:
-            from autogenesis_employees.registry import EmployeeRegistry
             from autogenesis_core.config import load_config
+            from autogenesis_employees.registry import EmployeeRegistry
 
             cfg = load_config()
             xdg = os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))
@@ -132,39 +133,41 @@ class AutogenesisApp(App[None]):
             )
             registry = EmployeeRegistry(global_dir=global_dir)
             rows = [
-                EmployeeRow(id=e.id, title=e.title, status="idle")
-                for e in registry.list_active()
+                EmployeeRow(id=e.id, title=e.title, status="idle") for e in registry.list_active()
             ]
             self.query_one(EmployeeRoster).load(rows)
             targets = ["CEO"] + [r.id for r in rows]
             self.query_one(InputBar).load_targets(targets)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             logger.warning("employee_load_failed", exc=str(exc))
 
     def _subscribe_event_bus(self) -> None:
         try:
             from autogenesis_core.events import EventType, get_event_bus
+
             bus = get_event_bus()
             bus.subscribe(EventType.CEO_SUBTASK_ASSIGN, self._on_subtask_assign)
             bus.subscribe(EventType.CEO_SUBTASK_COMPLETE, self._on_subtask_complete)
             bus.subscribe(EventType.CEO_SUBTASK_FAIL, self._on_subtask_fail)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             logger.warning("event_bus_subscribe_failed", exc=str(exc))
 
-    def _on_subtask_assign(self, event: Any) -> None:
+    def _on_subtask_assign(self, event: Any) -> None:  # noqa: ANN401
         emp = event.data.get("employee_id", "")
         task = event.data.get("subtask", "")[:60]
         self.call_from_thread(self.query_one(EmployeeRoster).set_status, emp, "working")
         self.call_from_thread(
             self.query_one(AgentStream).add_agent_delta,
-            f"Assigned: {task}", emp, f"assign-{emp}",
+            f"Assigned: {task}",
+            emp,
+            f"assign-{emp}",
         )
 
-    def _on_subtask_complete(self, event: Any) -> None:
+    def _on_subtask_complete(self, event: Any) -> None:  # noqa: ANN401
         emp = event.data.get("employee_id", "")
         self.call_from_thread(self.query_one(EmployeeRoster).set_status, emp, "done")
 
-    def _on_subtask_fail(self, event: Any) -> None:
+    def _on_subtask_fail(self, event: Any) -> None:  # noqa: ANN401
         emp = event.data.get("employee_id", "")
         self.call_from_thread(self.query_one(EmployeeRoster).set_status, emp, "idle")
 
@@ -195,11 +198,7 @@ class AutogenesisApp(App[None]):
         elif method == "turn/started":
             status.update_connection("connected")
         elif method == "thread/tokenUsage/updated":
-            total = int(
-                params.get("tokenUsage", {})
-                .get("total", {})
-                .get("totalTokens", 0)
-            )
+            total = int(params.get("tokenUsage", {}).get("total", {}).get("totalTokens", 0))
             status.update_tokens(total)
             self.query_one(RightPanel).update_tokens(session=total)
         elif method == "thread/started":
@@ -238,7 +237,6 @@ class AutogenesisApp(App[None]):
         try:
             from autogenesis_employees.brain import BrainManager
             from autogenesis_employees.inbox import InboxManager
-            from autogenesis_core.config import load_config
 
             base_dir = Path.cwd() / ".autogenesis"
             data_dir = base_dir / "employees" / emp_id
@@ -254,6 +252,7 @@ class AutogenesisApp(App[None]):
             xdg = os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))
             global_dir = Path(xdg) / "autogenesis" / "employees"
             from autogenesis_employees.registry import EmployeeRegistry
+
             registry = EmployeeRegistry(global_dir=global_dir)
             emp_config = registry.get(emp_id)
             training = emp_config.training_directives if emp_config else []
@@ -264,7 +263,7 @@ class AutogenesisApp(App[None]):
                 inbox_count=len(unread),
                 training=training,
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             logger.warning("employee_detail_failed", emp=emp_id, exc=str(exc))
             right.show_employee(emp_id, [], 0, [])
 

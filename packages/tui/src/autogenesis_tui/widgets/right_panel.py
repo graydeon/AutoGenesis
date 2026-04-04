@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-from textual.app import ComposeResult
 from textual.message import Message
 from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import Static
+
+if TYPE_CHECKING:
+    from textual.app import ComposeResult
 
 
 @dataclass
@@ -46,6 +49,9 @@ class RightPanel(Widget):
 
     def compose(self) -> ComposeResult:
         yield Static("", id="panel-content")
+
+    def on_mount(self) -> None:
+        self._refresh()
 
     def update_goals(self, goals: list[GoalEntry]) -> None:
         self.goals = list(goals)
@@ -93,7 +99,12 @@ class RightPanel(Widget):
             bar = "█" * bar_filled + "░" * (10 - bar_filled)
             lines.append(f"⟳ {g.description[:18]}")
             lines.append(f"  [{bar}] {g.completed}/{g.total}")
-        lines += ["", "TOKENS", f"Session: {self.session_tokens:,}", f"Daily:   {self.daily_tokens:,}"]
+        lines += [
+            "",
+            "TOKENS",
+            f"Session: {self.session_tokens:,}",
+            f"Daily:   {self.daily_tokens:,}",
+        ]
         return "\n".join(lines)
 
     def _render_employee(self) -> str:

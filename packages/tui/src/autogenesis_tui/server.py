@@ -30,9 +30,10 @@ class AppServerManager:
         self._process = await asyncio.create_subprocess_exec(
             "codex",
             "app-server",
+            "-c",
+            'approval_policy="never"',
             "--listen",
             f"ws://127.0.0.1:{self._port}",
-            "--dangerously-bypass-approvals-and-sandbox",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )

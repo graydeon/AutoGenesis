@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-from textual.app import ComposeResult
 from textual.message import Message
 from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import Static
+
+if TYPE_CHECKING:
+    from textual.app import ComposeResult
+    from textual.events import Click, Key
 
 _STATUS_ICONS = {
     "idle": ("○", "dim"),
@@ -86,3 +90,46 @@ class EmployeeRoster(Widget):
 
     def deselect(self) -> None:
         self.select(None)
+
+    def on_key(self, event: Key) -> None:
+        if not self.rows:
+            return
+        current = self.selected_employee
+        ids = [r.id for r in self.rows]
+        if event.key == "up":
+            if current is None:
+                idx = len(ids) - 1
+            else:
+                idx = (ids.index(current) - 1) % len(ids) if current in ids else 0
+            self.select(ids[idx])
+            event.stop()
+        elif event.key == "down":
+            if current is None:
+                idx = 0
+            else:
+                idx = (ids.index(current) + 1) % len(ids) if current in ids else 0
+            self.select(ids[idx])
+            event.stop()
+        elif event.key == "enter":
+            if current is not None:
+                self.deselect()
+            event.stop()
+
+    def on_click(self, event: Click) -> None:
+        if not self.rows:
+            return
+        # Determine which row was clicked by y offset within the roster list
+        roster_list = self.query_one("#roster-list", Static)
+        list_region = roster_list.region
+        if list_region is None:
+            return
+        # y relative to the roster list widget
+        rel_y = event.y - list_region.y
+        if rel_y < 0 or rel_y >= len(self.rows):
+            return
+        row = self.rows[rel_y]
+        if self.selected_employee == row.id:
+            self.deselect()
+        else:
+            self.select(row.id)
+        event.stop()
