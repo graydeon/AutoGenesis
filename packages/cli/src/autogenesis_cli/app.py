@@ -13,6 +13,7 @@ from autogenesis_cli.commands.logout import logout_command
 from autogenesis_cli.commands.meeting import meeting_command, standup_command
 from autogenesis_cli.commands.run import run_command
 from autogenesis_cli.commands.twitter import twitter_app
+from autogenesis_cli.commands.tui import tui_command
 from autogenesis_cli.commands.union_cmd import union_app
 
 app = typer.Typer(
@@ -56,6 +57,7 @@ app.add_typer(ceo_app, name="ceo")
 app.command(name="meeting")(meeting_command)
 app.command(name="standup")(standup_command)
 app.add_typer(union_app, name="union")
+app.command(name="tui")(tui_command)
 
 
 def main() -> None:
