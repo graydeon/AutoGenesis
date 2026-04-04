@@ -1,0 +1,11 @@
+[theme]
+name       = "midnight-blue"
+background = "#0d1117"
+surface    = "#161b22"
+accent     = "#58a6ff"
+success    = "#3fb950"
+warning    = "#e3b341"
+error      = "#f85149"
+text       = "#cdd9e5"
+subtext    = "#6e7681"
+border     = "#30363d"

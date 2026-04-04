@@ -1,0 +1,11 @@
+[theme]
+name       = "hacker-green"
+background = "#0a0e0a"
+surface    = "#0d130d"
+accent     = "#00ff41"
+success    = "#00c832"
+warning    = "#ffaa00"
+error      = "#ff3333"
+text       = "#ccffcc"
+subtext    = "#3a5a3a"
+border     = "#1e3a1e"
