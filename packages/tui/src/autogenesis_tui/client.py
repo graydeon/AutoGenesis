@@ -91,7 +91,7 @@ class CodexWSClient:
             params["cwd"] = cwd
         result = await self._request("thread/start", params)
         thread = result.get("thread", result)
-        thread_id: str = thread.get("id", "")
+        thread_id = str(thread.get("id") or "")
         self._active_thread_id = thread_id
         return thread_id
 
@@ -115,8 +115,7 @@ class CodexWSClient:
         """Fork a thread. Returns new thread ID."""
         result = await self._request("thread/fork", {"threadId": thread_id})
         thread = result.get("thread", result)
-        new_id: str = thread.get("id", "")
-        return new_id
+        return str(thread.get("id") or "")
 
     async def disconnect(self) -> None:
         if self._receive_task:
