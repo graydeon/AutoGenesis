@@ -34,6 +34,8 @@ class CodexWSClient:
         logger.info("codex_ws_connected", port=self._port)
 
     async def _receive_loop(self) -> None:
+        if self._ws is None:
+            return
         try:
             async for raw in self._ws:
                 data: dict[str, Any] = json.loads(raw)
@@ -60,6 +62,8 @@ class CodexWSClient:
         self._on_event({"method": method, "params": params})
 
     async def _request(self, method: str, params: dict[str, Any]) -> Any:
+        if self._ws is None:
+            raise RuntimeError("WebSocket not connected. Call connect() first.")
         req_id = uuid.uuid4().hex
         loop = asyncio.get_running_loop()
         fut: asyncio.Future[Any] = loop.create_future()
