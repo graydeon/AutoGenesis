@@ -1,0 +1,25 @@
+[project]
+name = "autogenesis-tui"
+version = "0.1.0"
+description = "AutoGenesis terminal UI"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = [
+    "autogenesis-core",
+    "autogenesis-employees",
+    "textual>=0.87",
+    "websockets>=13",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/autogenesis_tui"]
