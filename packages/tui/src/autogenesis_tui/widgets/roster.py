@@ -118,13 +118,17 @@ class EmployeeRoster(Widget):
     def on_click(self, event: Click) -> None:
         if not self.rows:
             return
-        # Determine which row was clicked by y offset within the roster list
+        # Calculate which row was clicked based on cursor position within the list
+        # event.y is relative to this EmployeeRoster widget
         roster_list = self.query_one("#roster-list", Static)
         list_region = roster_list.region
         if list_region is None:
             return
-        # y relative to the roster list widget
-        rel_y = event.y - list_region.y
+        # The row index is the click y-position minus the list's top offset
+        # Minus 1 to account for widget border/padding offset that causes the 2-row drift
+        rel_y = event.y - list_region.y - 1
+        scroll_y = roster_list.scroll_offset.y
+        rel_y += scroll_y
         if rel_y < 0 or rel_y >= len(self.rows):
             return
         row = self.rows[rel_y]
