@@ -12,22 +12,37 @@ Autonomous agent harness powered by OpenAI Codex CLI. Four integrated systems:
 4. **Twitter Agent** — Autonomous persona that browses Twitter via Pinchtab, drafts tweets, queues for human approval
 5. **TUI** — Textual-based Command Center (`autogenesis tui`): 3-column layout with live roster, streaming agent output, goals/tokens panel, theme picker
 
-## Current State (2026-04-04)
+## Current State (2026-04-05)
 
-- **35 TUI tests passing** in `packages/tui/`; other package tests intact
-- TUI implemented and wired: `packages/tui/` fully functional, `autogenesis tui` CLI command live
-- One gap: **live Codex connection** requires real ChatGPT Plus OAuth credentials (codex app-server needs `~/.codex/` auth)
+- **443 tests passing** (408 core + 35 TUI)
+- **GitNexus integration complete** — task-specific code context injection for employees
+- **Project init command** — `autogenesis project init` for per-project GitNexus setup
+- **TUI fully functional** — Textual-based Command Center with live roster, streaming output, themes
+- **Twitter gateway** — Credential-isolated tweet posting via HTTP gateway
+- One external gap: **live Codex connection** requires real ChatGPT Plus OAuth credentials
 
 ## TUI — Known State
 
 The TUI was just implemented and bug-fixed. Five issues were resolved (commit `3da1afb`):
-- Disconnected: was passing invalid `--dangerously-bypass-approvals-and-sandbox` to `codex app-server`; fixed with `-c approval_policy="never"`
-- Right panel empty: `RightPanel` didn't call `_refresh()` on mount; fixed with `on_mount()`
-- Roster not clickable: added `on_key()` (↑/↓/Enter) and `on_click()` handlers
-- Dropdown not working: added `on_static_click()` to `InputBar` so clicking `[ CEO ▾ ]` cycles targets
-- Column borders missing: added `border-right`/`border-left` CSS to visually separate columns
+|- Disconnected: was passing invalid `--dangerously-bypass-approvals-and-sandbox` to `codex app-server`; fixed with `-c approval_policy="never"`
+|- Right panel empty: `RightPanel` didn't call `_refresh()` on mount; fixed with `on_mount()`
+|- Roster not clickable: added `on_key()` (↑/↓/Enter) and `on_click()` handlers
+|- Dropdown not working: added `on_static_click()` to `InputBar` so clicking `[ CEO ▾ ]` cycles targets
+|- Column borders missing: added `border-right`/`border-left` CSS to visually separate columns
 
-**Outstanding unstaged changes** (not yet committed): Several files from the feature/tui branch merge are unstaged but present in the working tree — `.gitignore`, `HANDOFF.md`, `README.md`, wiki docs, `packages/cli/`, `packages/core/sub_agents.py`, `packages/employees/`. These represent the remainder of the feature/tui merge that got staged but wasn't committed in the last session. They need a separate review and commit.
+## GitNexus Integration
+
+GitNexusContextProvider (`packages/employees/src/autogenesis_employees/gitnexus.py`):
+- Auto-indexes repos on first use
+- Queries GitNexus for task-relevant code context
+- Caches results per (repo, task) tuple
+- Injects context into employee prompts for token-efficient code understanding
+
+Usage:
+```bash
+autogenesis project init .              # Initialize GitNexus for current project
+autogenesis project init . --force-index # Force re-index
+```
 
 ## Quick Commands
 
