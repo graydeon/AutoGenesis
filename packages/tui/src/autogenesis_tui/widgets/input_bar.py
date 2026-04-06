@@ -10,7 +10,7 @@ from textual.widgets import Input, Static
 
 if TYPE_CHECKING:
     from textual.app import ComposeResult
-    from textual.events import Click
+    from textual.events import Click, Key
 
 
 class InputBar(Widget):
@@ -81,3 +81,16 @@ class InputBar(Widget):
         if text:
             self.post_message(self.Submitted(target=self.target, text=text))
             event.input.value = ""
+
+    def on_key(self, event: Key) -> None:
+        """Handle keys - Escape defocuses input to allow roster navigation."""
+        if event.key == "escape":
+            # Blur the input so user can navigate roster with keys
+            self.screen.set_focus(None)
+            event.stop()
+        elif event.key == "tab":
+            # Tab cycles focus to roster (and back)
+            roster = self.screen.query_one("EmployeeRoster")
+            if roster:
+                self.screen.set_focus(roster)
+            event.stop()

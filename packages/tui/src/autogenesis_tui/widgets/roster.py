@@ -56,6 +56,7 @@ class EmployeeRoster(Widget):
         yield Static("", id="roster-list")
         yield Static(
             "NAV: ↑↓ PGUP/PGDN HOME/END\n"
+            "ESC/TAB: leave input box\n"
             "H hr  S standup  U union\n"
             "? help  ENTER select",
             id="roster-shortcuts",
