@@ -67,15 +67,17 @@ async def test_start_thread_returns_thread_id(mock_ws):
 async def test_on_event_called_for_notifications(mock_ws):
     events = []
     client = None
-    notification = json.dumps({
-        "method": "item/agentMessage/delta",
-        "params": {
-            "delta": "Hello",
-            "itemId": "item-1",
-            "threadId": "t-1",
-            "turnId": "turn-1",
-        },
-    })
+    notification = json.dumps(
+        {
+            "method": "item/agentMessage/delta",
+            "params": {
+                "delta": "Hello",
+                "itemId": "item-1",
+                "threadId": "t-1",
+                "turnId": "turn-1",
+            },
+        }
+    )
 
     async def fake_send(msg):
         data = json.loads(msg)

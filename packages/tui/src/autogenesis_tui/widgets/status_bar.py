@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from textual.app import ComposeResult
+from textual.app import ComposeResult  # noqa: TC002
 from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import Label
@@ -39,7 +39,12 @@ class StatusBar(Widget):
         self.query_one("#token-label", Label).update(f"{tokens:,} tokens")
 
     def watch_connection_state(self, state: str) -> None:
-        symbol = "●" if state == "connected" else "⟳" if state in ("connecting", "reconnecting") else "○"
+        if state == "connected":
+            symbol = "●"
+        elif state in ("connecting", "reconnecting"):
+            symbol = "⟳"
+        else:
+            symbol = "○"
         self.query_one("#conn-label", Label).update(f"{symbol} {state}")
 
     def watch_model_name(self, name: str) -> None:

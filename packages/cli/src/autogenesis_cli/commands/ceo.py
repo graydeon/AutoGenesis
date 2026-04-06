@@ -346,8 +346,9 @@ def ceo_plan(
             await orch.close()
             return
         plan_path = Path(goal["plan_path"])
-        if plan_path.exists():
-            console.print(plan_path.read_text())
+        # CLI commands can use blocking pathlib - not a performance issue for CLI
+        if plan_path.exists():  # noqa: ASYNC240
+            console.print(plan_path.read_text())  # noqa: ASYNC240
         else:
             console.print(f"[red]Plan file not found: {plan_path}[/red]")
         await orch.close()

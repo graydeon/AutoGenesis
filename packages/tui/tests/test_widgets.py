@@ -1,7 +1,13 @@
 from __future__ import annotations
 
+from typing import ClassVar
+
 import pytest
+from autogenesis_tui.widgets.input_bar import InputBar
+from autogenesis_tui.widgets.right_panel import GoalEntry, RightPanel
+from autogenesis_tui.widgets.roster import EmployeeRoster, EmployeeRow
 from autogenesis_tui.widgets.status_bar import StatusBar
+from autogenesis_tui.widgets.stream import AgentStream
 from textual.app import App, ComposeResult
 
 
@@ -32,9 +38,6 @@ async def test_status_bar_update_connection():
         bar.update_connection("connected", "gpt-5.3-codex")
         assert bar.connection_state == "connected"
         assert bar.model_name == "gpt-5.3-codex"
-
-
-from autogenesis_tui.widgets.roster import EmployeeRoster, EmployeeRow
 
 
 class _RosterApp(App):
@@ -93,9 +96,6 @@ async def test_roster_set_status():
         assert roster.rows[0].status == "working"
 
 
-from autogenesis_tui.widgets.stream import AgentStream
-
-
 class _StreamApp(App):
     def compose(self) -> ComposeResult:
         yield AgentStream()
@@ -140,9 +140,6 @@ async def test_stream_filter_by_employee():
         assert all(e.source == "CEO" for e in visible)
 
 
-from autogenesis_tui.widgets.right_panel import GoalEntry, RightPanel
-
-
 class _RightPanelApp(App):
     def compose(self) -> ComposeResult:
         yield RightPanel()
@@ -159,9 +156,11 @@ async def test_right_panel_default_mode():
 async def test_right_panel_show_goals():
     async with _RightPanelApp().run_test() as pilot:
         panel = pilot.app.query_one(RightPanel)
-        panel.update_goals([
-            GoalEntry(id="g1", description="Add JWT auth", completed=2, total=4),
-        ])
+        panel.update_goals(
+            [
+                GoalEntry(id="g1", description="Add JWT auth", completed=2, total=4),
+            ]
+        )
         assert len(panel.goals) == 1
 
 
@@ -196,11 +195,8 @@ async def test_right_panel_back_to_goals():
         assert panel.mode == "goals"
 
 
-from autogenesis_tui.widgets.input_bar import InputBar
-
-
 class _InputBarApp(App):
-    submitted: list[tuple[str, str]] = []
+    submitted: ClassVar[list[tuple[str, str]]] = []
 
     def compose(self) -> ComposeResult:
         yield InputBar()

@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable  # noqa: TC003
 from typing import Any
 
 import structlog
@@ -28,9 +28,12 @@ class CodexWSClient:
         uri = f"ws://127.0.0.1:{self._port}"
         self._ws = await connect(uri)
         self._receive_task = asyncio.create_task(self._receive_loop())
-        await self._request("initialize", {
-            "clientInfo": {"name": "autogenesis-tui", "version": "0.1.0"},
-        })
+        await self._request(
+            "initialize",
+            {
+                "clientInfo": {"name": "autogenesis-tui", "version": "0.1.0"},
+            },
+        )
         logger.info("codex_ws_connected", port=self._port)
 
     async def _receive_loop(self) -> None:
@@ -49,7 +52,8 @@ class CodexWSClient:
                         fut.set_result(data.get("result", {}))
                 elif "method" in data:
                     self._handle_notification(data)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
+            # WebSocket receive errors can be varied; log and continue
             logger.warning("codex_ws_receive_error", exc=str(exc))
 
     def _handle_notification(self, data: dict[str, Any]) -> None:
@@ -62,20 +66,26 @@ class CodexWSClient:
             self._active_turn_id = None
         self._on_event({"method": method, "params": params})
 
-    async def _request(self, method: str, params: dict[str, Any]) -> Any:
+    _WS_NOT_CONNECTED_MSG = "WebSocket not connected. Call connect() first."
+
+    async def _request(self, method: str, params: dict[str, Any]) -> Any:  # noqa: ANN401
         ws = self._ws
         if ws is None:
-            raise RuntimeError("WebSocket not connected. Call connect() first.")
+            raise RuntimeError(self._WS_NOT_CONNECTED_MSG)
         req_id = uuid.uuid4().hex
         loop = asyncio.get_running_loop()
         fut: asyncio.Future[Any] = loop.create_future()
         self._pending[req_id] = fut
-        await ws.send(json.dumps({
-            "jsonrpc": "2.0",
-            "id": req_id,
-            "method": method,
-            "params": params,
-        }))
+        await ws.send(
+            json.dumps(
+                {
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "method": method,
+                    "params": params,
+                }
+            )
+        )
         return await asyncio.wait_for(fut, timeout=30.0)
 
     async def start_thread(
@@ -97,19 +107,25 @@ class CodexWSClient:
 
     async def send_turn(self, thread_id: str, text: str) -> None:
         """Send a user turn."""
-        await self._request("turn/start", {
-            "threadId": thread_id,
-            "input": [{"type": "text", "text": text}],
-        })
+        await self._request(
+            "turn/start",
+            {
+                "threadId": thread_id,
+                "input": [{"type": "text", "text": text}],
+            },
+        )
 
     async def interrupt(self, thread_id: str) -> None:
         """Interrupt the active turn."""
         if self._active_turn_id is None:
             return
-        await self._request("turn/interrupt", {
-            "threadId": thread_id,
-            "turnId": self._active_turn_id,
-        })
+        await self._request(
+            "turn/interrupt",
+            {
+                "threadId": thread_id,
+                "turnId": self._active_turn_id,
+            },
+        )
 
     async def fork_thread(self, thread_id: str) -> str:
         """Fork a thread. Returns new thread ID."""

@@ -1,4 +1,5 @@
 """AutoGenesis TUI widgets."""
+
 from autogenesis_tui.widgets.input_bar import InputBar
 from autogenesis_tui.widgets.right_panel import RightPanel
 from autogenesis_tui.widgets.roster import EmployeeRoster

@@ -28,13 +28,15 @@ from autogenesis_employees.reasoning import (
     build_decompose_prompt,
     extract_json,
 )
+from autogenesis_employees.brain import BrainManager
+from autogenesis_employees.changelog import ChangelogManager
+from autogenesis_employees.inbox import InboxManager
 from autogenesis_employees.state import CEOStateManager
 
 if TYPE_CHECKING:
     from autogenesis_core.client import CodexClient
     from autogenesis_core.sub_agents import SubAgentManager
 
-    from autogenesis_employees.changelog import ChangelogManager
     from autogenesis_employees.gitnexus import GitNexusContextProvider
     from autogenesis_employees.registry import EmployeeRegistry
     from autogenesis_employees.runtime import EmployeeRuntime
@@ -81,8 +83,6 @@ class CEOOrchestrator:
 
     async def initialize(self) -> None:
         """Initialize state DB and changelog."""
-        from autogenesis_employees.changelog import ChangelogManager
-
         ceo_dir = self._base_dir / "ceo"
         ceo_dir.mkdir(parents=True, exist_ok=True)
         (ceo_dir / "plans").mkdir(exist_ok=True)
@@ -111,9 +111,6 @@ class CEOOrchestrator:
 
     async def _get_managers(self, employee_id: str) -> ManagerBundle:
         if employee_id not in self._managers:
-            from autogenesis_employees.brain import BrainManager
-            from autogenesis_employees.inbox import InboxManager
-
             data_dir = self._base_dir / "employees" / employee_id
             brain = BrainManager(data_dir / "brain.db")
             inbox = InboxManager(data_dir / "inbox.db")

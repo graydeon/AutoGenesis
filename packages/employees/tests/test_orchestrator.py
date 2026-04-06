@@ -281,8 +281,9 @@ class TestCEOOrchestrator:
         await orch.initialize()
         result = await orch.run("Two step goal")
         plan_path = Path(result.plan_path)
-        assert plan_path.exists()
-        content = plan_path.read_text()
+        # Tests can use blocking pathlib - small test files
+        assert plan_path.exists()  # noqa: ASYNC240
+        content = plan_path.read_text()  # noqa: ASYNC240
         assert "Step 1" in content
         assert "Step 2" in content
         # Both subtasks should be checked off

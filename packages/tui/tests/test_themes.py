@@ -1,9 +1,13 @@
 from __future__ import annotations
 
-from pathlib import Path
+from pathlib import Path  # noqa: TC003
+from typing import TYPE_CHECKING
 
 import pytest
 from autogenesis_tui.themes import ThemeManager
+
+if TYPE_CHECKING:
+    from textual.theme import Theme
 
 
 def test_builtin_themes_loaded():
@@ -48,9 +52,10 @@ def test_user_theme_loaded(tmp_path: Path):
 
 
 def test_to_textual_theme():
-    from textual.theme import Theme
-
     mgr = ThemeManager()
     t = mgr.to_textual_theme("dracula")
+    # Import here to avoid slow import at test collection time
+    from textual.theme import Theme  # noqa: PLC0415
+
     assert isinstance(t, Theme)
     assert t.name == "dracula"

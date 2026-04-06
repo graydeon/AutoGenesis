@@ -21,6 +21,10 @@ from autogenesis_tui.widgets import (
 )
 from autogenesis_tui.widgets.roster import EmployeeRow
 
+# Optional imports - these are used in specific methods with graceful fallback
+# The PLC0415 warnings are suppressed because these are intentionally lazy-loaded
+# to avoid circular dependencies and import-time side effects
+
 logger = structlog.get_logger()
 
 _CEO_SYSTEM_PROMPT = """\
@@ -121,8 +125,8 @@ class AutogenesisApp(App[None]):
 
     async def _load_employees(self) -> None:
         try:
-            from autogenesis_core.config import load_config
-            from autogenesis_employees.registry import EmployeeRegistry
+            from autogenesis_core.config import load_config  # noqa: PLC0415
+            from autogenesis_employees.registry import EmployeeRegistry  # noqa: PLC0415
 
             cfg = load_config()
             xdg = os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))
@@ -143,7 +147,7 @@ class AutogenesisApp(App[None]):
 
     def _subscribe_event_bus(self) -> None:
         try:
-            from autogenesis_core.events import EventType, get_event_bus
+            from autogenesis_core.events import EventType, get_event_bus  # noqa: PLC0415
 
             bus = get_event_bus()
             bus.subscribe(EventType.CEO_SUBTASK_ASSIGN, self._on_subtask_assign)
@@ -235,8 +239,8 @@ class AutogenesisApp(App[None]):
     async def _show_employee_detail(self, emp_id: str) -> None:
         right = self.query_one(RightPanel)
         try:
-            from autogenesis_employees.brain import BrainManager
-            from autogenesis_employees.inbox import InboxManager
+            from autogenesis_employees.brain import BrainManager  # noqa: PLC0415
+            from autogenesis_employees.inbox import InboxManager  # noqa: PLC0415
 
             base_dir = Path.cwd() / ".autogenesis"
             data_dir = base_dir / "employees" / emp_id
@@ -251,7 +255,7 @@ class AutogenesisApp(App[None]):
 
             xdg = os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))
             global_dir = Path(xdg) / "autogenesis" / "employees"
-            from autogenesis_employees.registry import EmployeeRegistry
+            from autogenesis_employees.registry import EmployeeRegistry  # noqa: PLC0415
 
             registry = EmployeeRegistry(global_dir=global_dir)
             emp_config = registry.get(emp_id)

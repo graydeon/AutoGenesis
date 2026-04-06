@@ -69,8 +69,6 @@ class TestEmployeesConfig:
 
     def test_employees_config_dispatch_timeout(self):
         """EmployeesConfig has dispatch_timeout defaulting to 300."""
-        from autogenesis_core.config import EmployeesConfig
-
         cfg = EmployeesConfig()
         assert cfg.dispatch_timeout == 300.0
 

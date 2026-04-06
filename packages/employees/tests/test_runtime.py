@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, MagicMock
+
 from autogenesis_employees.models import EmployeeConfig
 from autogenesis_employees.runtime import EmployeeRuntime
 
@@ -46,8 +48,6 @@ class TestEmployeeRuntime:
         assert "file_write" not in filtered
 
     async def test_dispatch_calls_spawn(self):
-        from unittest.mock import AsyncMock, MagicMock
-
         config = EmployeeConfig(id="test", title="Test", persona="testing")
         mgr = MagicMock()
         mock_result = MagicMock()

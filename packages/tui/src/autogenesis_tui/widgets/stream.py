@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from textual.app import ComposeResult
+from textual.app import ComposeResult  # noqa: TC002
 from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import Static
@@ -61,6 +61,7 @@ class AgentStream(Widget):
         self,
         tool_name: str,
         tool_arg: str,
+        *,
         success: bool,
         source: str,
         turn_id: str = "",
@@ -97,5 +98,5 @@ class AgentStream(Widget):
                 lines.append(f"  {result}")
             else:
                 suffix = " ✓" if entry.complete else ""
-                lines.append(f"{entry.source} › {entry.text}{suffix}")
+                lines.append(f"{entry.source} > {entry.text}{suffix}")
         self.query_one("#stream-body", Static).update("\n".join(lines))
