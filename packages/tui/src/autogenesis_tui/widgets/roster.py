@@ -54,7 +54,12 @@ class EmployeeRoster(Widget):
     def compose(self) -> ComposeResult:
         yield Static("EMPLOYEES", id="roster-header")
         yield Static("", id="roster-list")
-        yield Static("SHORTCUTS\nH hr  S standup\nU union  ? help", id="roster-shortcuts")
+        yield Static(
+            "NAV: ↑↓ PGUP/PGDN HOME/END\n"
+            "H hr  S standup  U union\n"
+            "? help  ENTER select",
+            id="roster-shortcuts",
+        )
 
     def load(self, rows: list[EmployeeRow]) -> None:
         self.rows = list(rows)
@@ -96,6 +101,7 @@ class EmployeeRoster(Widget):
             return
         current = self.selected_employee
         ids = [r.id for r in self.rows]
+
         if event.key == "up":
             if current is None:
                 idx = len(ids) - 1
@@ -109,6 +115,34 @@ class EmployeeRoster(Widget):
             else:
                 idx = (ids.index(current) + 1) % len(ids) if current in ids else 0
             self.select(ids[idx])
+            event.stop()
+        elif event.key in ("pageup", "ctrl+b"):
+            # Jump to previous employee (5 rows at a time)
+            if current is None:
+                idx = len(ids) - 1
+            else:
+                current_idx = ids.index(current) if current in ids else 0
+                idx = max(0, current_idx - 5)
+            self.select(ids[idx])
+            event.stop()
+        elif event.key in ("pagedown", "ctrl+f"):
+            # Jump to next employee (5 rows at a time)
+            if current is None:
+                idx = 0
+            else:
+                current_idx = ids.index(current) if current in ids else 0
+                idx = min(len(ids) - 1, current_idx + 5)
+            self.select(ids[idx])
+            event.stop()
+        elif event.key == "home":
+            # Jump to CEO (first item)
+            if ids:
+                self.select(ids[0])
+            event.stop()
+        elif event.key == "end":
+            # Jump to last employee
+            if ids:
+                self.select(ids[-1])
             event.stop()
         elif event.key == "enter":
             if current is not None:

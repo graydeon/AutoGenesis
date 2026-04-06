@@ -136,11 +136,13 @@ class AutogenesisApp(App[None]):
                 else Path(xdg) / "autogenesis" / "employees"
             )
             registry = EmployeeRegistry(global_dir=global_dir)
-            rows = [
+            emp_rows = [
                 EmployeeRow(id=e.id, title=e.title, status="idle") for e in registry.list_active()
             ]
+            # CEO is always first in the roster, then employees
+            rows = [EmployeeRow(id="CEO", title="CEO Orchestrator", status="active")] + emp_rows
             self.query_one(EmployeeRoster).load(rows)
-            targets = ["CEO"] + [r.id for r in rows]
+            targets = [r.id for r in rows]
             self.query_one(InputBar).load_targets(targets)
         except Exception as exc:  # noqa: BLE001
             logger.warning("employee_load_failed", exc=str(exc))
