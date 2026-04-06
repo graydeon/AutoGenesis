@@ -17,6 +17,7 @@ class TestCLIHelp:
         assert "run" in result.output
         assert "chat" in result.output
         assert "config" in result.output
+        assert "project" in result.output
 
     def test_version_flag(self):
         result = runner.invoke(app, ["--version"])
@@ -75,6 +76,22 @@ class TestConfigCommand:
         result = runner.invoke(app, ["config", "show"])
         assert result.exit_code == 0
         assert "codex" in result.output
+
+
+class TestProjectCommand:
+    def test_project_help(self):
+        result = runner.invoke(app, ["project", "--help"])
+        assert result.exit_code == 0
+        assert "init" in result.output
+
+    def test_project_init_writes_config(self, tmp_path):
+        result = runner.invoke(app, ["project", "init", str(tmp_path), "--skip-index"])
+        assert result.exit_code == 0
+        cfg = tmp_path / ".autogenesis" / "config.yaml"
+        assert cfg.exists()
+        content = cfg.read_text()
+        assert "gitnexus:" in content
+        assert "enabled: true" in content
 
 
 class TestTwitterCommand:

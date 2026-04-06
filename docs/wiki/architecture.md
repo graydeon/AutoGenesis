@@ -85,8 +85,8 @@ $XDG_CONFIG_HOME/autogenesis/employees/*.yaml   → Global roster
 ## Credential Flow
 
 ```
-Host: stores secrets via `pass` CLI
-  → Twitter Gateway (localhost:1456): signs API requests
+Host: stores secrets via environment variables or a secret manager
+  → Twitter Gateway (configurable URL): signs API requests
   → Codex OAuth: browser PKCE flow → JWT stored at ~/.local/share/autogenesis/auth.json (0600)
 VM/Agent: receives scoped tokens only, never raw API keys
 ```

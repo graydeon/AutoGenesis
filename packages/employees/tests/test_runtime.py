@@ -20,12 +20,14 @@ class TestEmployeeRuntime:
             brain_context=["Remember: use pytest fixtures"],
             inbox_messages=["From CTO: Review the auth module"],
             changelog_entries=["## 2026-03-19 — cto\n**Task:** Init project"],
+            project_context="## GitNexus Code Context\n\nAuth flow: router -> service -> repo",
             task="Build the user API",
         )
         assert "backend engineer" in prompt.lower()
         assert "async/await" in prompt
         assert "pytest fixtures" in prompt
         assert "Review the auth module" in prompt
+        assert "GitNexus Code Context" in prompt
         assert "Build the user API" in prompt
 
     def test_build_tool_whitelist(self):

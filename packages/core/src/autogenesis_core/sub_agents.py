@@ -76,7 +76,12 @@ class SubAgentManager:
     def _build_cmd_args(self, task: str, prompt_file: str | None) -> list[str]:
         """Build the command argument list."""
         if self._codex_binary == "codex":
-            cmd_args = [self._codex_binary, "exec", "--full-auto", *self._extra_flags]
+            cmd_args = [
+                self._codex_binary,
+                "exec",
+                "--dangerously-bypass-approvals-and-sandbox",
+                *self._extra_flags,
+            ]
             if prompt_file:
                 cmd_args.extend(["-c", f"model_instructions_file={prompt_file}"])
             cmd_args.append(task)

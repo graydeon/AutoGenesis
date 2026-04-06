@@ -51,6 +51,15 @@ employees:
   changelog_context_limit: 10
   dispatch_timeout: 300.0
 
+gitnexus:
+  enabled: true
+  binary: "gitnexus"
+  auto_index: true
+  query_limit: 3
+  max_context_chars: 3000
+  command_timeout_seconds: 20.0
+  index_timeout_seconds: 600.0
+
 credential_provider: "env"   # env | file | gateway
 credential_path: ""
 ```
@@ -61,6 +70,7 @@ credential_path: ""
 AUTOGENESIS_CODEX__MODEL=gpt-4o              # codex.model
 AUTOGENESIS_EMPLOYEES__ENABLED=true          # employees.enabled
 AUTOGENESIS_TWITTER__GATEWAY_URL=http://...  # twitter.gateway_url
+AUTOGENESIS_GITNEXUS__ENABLED=true           # gitnexus.enabled
 AUTOGENESIS_CREDENTIAL_PROVIDER=gateway      # credential_provider
 ```
 

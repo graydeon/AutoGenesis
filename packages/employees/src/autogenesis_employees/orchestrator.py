@@ -35,6 +35,7 @@ if TYPE_CHECKING:
     from autogenesis_core.sub_agents import SubAgentManager
 
     from autogenesis_employees.changelog import ChangelogManager
+    from autogenesis_employees.gitnexus import GitNexusContextProvider
     from autogenesis_employees.registry import EmployeeRegistry
     from autogenesis_employees.runtime import EmployeeRuntime
 
@@ -62,6 +63,7 @@ class CEOOrchestrator:
         base_dir: Path | None = None,
         dispatch_timeout: float = 300.0,
         reasoning_mgr: SubAgentManager | None = None,
+        context_provider: GitNexusContextProvider | None = None,
     ) -> None:
         self._registry = registry
         self._runtime = runtime
@@ -69,6 +71,7 @@ class CEOOrchestrator:
         self._reasoning_mgr = reasoning_mgr or sub_agent_mgr
         self._codex = codex
         self._dispatch_timeout = dispatch_timeout
+        self._context_provider = context_provider
         self._project_root = _find_project_root()
         self._base_dir = base_dir or (self._project_root / ".autogenesis")
         self._state: CEOStateManager | None = None
@@ -193,12 +196,19 @@ class CEOOrchestrator:
             for m in await managers.inbox.get_unread(employee_id)
         ]
         changelog_entries = self._changelog.read_recent(10) if self._changelog else []
+        project_context = None
+        if self._context_provider:
+            project_context = await self._context_provider.get_task_context(
+                task=task,
+                cwd=self._project_root,
+            )
 
         return self._runtime.build_system_prompt(
             config=config,
             brain_context=brain_context,
             inbox_messages=inbox_messages,
             changelog_entries=changelog_entries,
+            project_context=project_context,
             task=task,
         )
 

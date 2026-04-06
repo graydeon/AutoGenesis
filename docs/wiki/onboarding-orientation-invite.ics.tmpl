@@ -1,0 +1,18 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//AutoGenesis//Employee Orientation//EN
+CALSCALE:GREGORIAN
+METHOD:REQUEST
+BEGIN:VEVENT
+UID:onboarding-{{DATE_YYYYMMDD}}@autogenesis
+DTSTAMP:{{STAMP_UTC_YYYYMMDDTHHMMSSZ}}
+DTSTART:{{START_UTC_YYYYMMDDTHHMMSSZ}}
+DTEND:{{END_UTC_YYYYMMDDTHHMMSSZ}}
+SUMMARY:AutoGenesis Employee Orientation + Introductions
+LOCATION:{{MEETING_URL_OR_ROOM}}
+DESCRIPTION:Welcome to AutoGenesis.\n\nGoal: Align the team on mission, product context, tooling, security expectations, and next steps.\n\nPre-work:\n- README.md\n- HANDOFF.md\n- docs/wiki/onboarding-packet.md\n- docs/wiki/security-onboarding-module.md\n- docs/wiki/onboarding-plan.md\n- docs/wiki/architecture.md\n- docs/wiki/employee-system.md\n\nBring:\n- 30-60 second introduction\n- Any access blockers\n- One current question or priority\n\nNotes hub: {{NOTES_URL}}
+STATUS:CONFIRMED
+SEQUENCE:0
+TRANSP:OPAQUE
+END:VEVENT
+END:VCALENDAR

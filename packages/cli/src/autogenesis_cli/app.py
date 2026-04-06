@@ -11,9 +11,10 @@ from autogenesis_cli.commands.hr import hr_app
 from autogenesis_cli.commands.login import login_command
 from autogenesis_cli.commands.logout import logout_command
 from autogenesis_cli.commands.meeting import meeting_command, standup_command
+from autogenesis_cli.commands.project import project_app
 from autogenesis_cli.commands.run import run_command
-from autogenesis_cli.commands.twitter import twitter_app
 from autogenesis_cli.commands.tui import tui_command
+from autogenesis_cli.commands.twitter import twitter_app
 from autogenesis_cli.commands.union_cmd import union_app
 
 app = typer.Typer(
@@ -53,6 +54,7 @@ app.command(name="chat")(chat_command)
 app.command(name="config")(config_command)
 app.add_typer(twitter_app, name="twitter")
 app.add_typer(hr_app, name="hr")
+app.add_typer(project_app, name="project")
 app.add_typer(ceo_app, name="ceo")
 app.command(name="meeting")(meeting_command)
 app.command(name="standup")(standup_command)

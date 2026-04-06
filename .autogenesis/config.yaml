@@ -1,3 +1,9 @@
-# AutoGenesis dogfooding configuration
-models:
-  default_tier: standard
+project_name: AutoGenesis
+gitnexus:
+  enabled: true
+  binary: gitnexus
+  auto_index: true
+  query_limit: 3
+  max_context_chars: 3000
+  command_timeout_seconds: 20.0
+  index_timeout_seconds: 600.0

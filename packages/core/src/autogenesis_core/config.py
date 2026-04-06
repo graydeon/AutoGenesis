@@ -59,7 +59,7 @@ class TwitterConfig(BaseModel):
     max_drafts_per_session: int = 10
     queue_path: str = ""
     worldview_path: str = ""
-    gateway_url: str = "http://127.0.0.1:1456"
+    gateway_url: str = ""
     selectors_path: str = ""
 
 
@@ -78,6 +78,18 @@ class EmployeesConfig(BaseModel):
     dispatch_timeout: float = 300.0
 
 
+class GitNexusConfig(BaseModel):
+    """GitNexus integration settings."""
+
+    enabled: bool = True
+    binary: str = "gitnexus"
+    auto_index: bool = True
+    query_limit: int = 3
+    max_context_chars: int = 3000
+    command_timeout_seconds: float = 20.0
+    index_timeout_seconds: float = 600.0
+
+
 class AutoGenesisConfig(BaseModel):
     """Root configuration model."""
 
@@ -86,6 +98,7 @@ class AutoGenesisConfig(BaseModel):
     security: SecurityConfig = Field(default_factory=SecurityConfig)
     twitter: TwitterConfig = Field(default_factory=TwitterConfig)
     employees: EmployeesConfig = Field(default_factory=EmployeesConfig)
+    gitnexus: GitNexusConfig = Field(default_factory=GitNexusConfig)
     credential_provider: CredentialProviderType = CredentialProviderType.ENV
     credential_path: str = ""  # for file/gateway providers
 

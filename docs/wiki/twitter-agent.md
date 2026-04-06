@@ -11,9 +11,9 @@ Pinchtab MCP → TwitterBrowser → browse_feed() → tweets
                                                     ↓
                                           TwitterPostTool → ConstitutionalCheck → QueueManager
                                                     ↓
-                                          Human approves via infra-dashboard
+                                          Human approves via approval queue
                                                     ↓
-                                          TwitterPoster → Gateway (localhost:1456) → Twitter API
+                                          TwitterPoster → Gateway → Twitter API
 ```
 
 ## Components
@@ -37,7 +37,7 @@ Pinchtab MCP → TwitterBrowser → browse_feed() → tweets
 3. **Reason**: Codex agent decides which tweets to engage with, drafts responses
 4. **Constitutional check**: `ConstitutionalCheck` verifies no identity leaks before queuing
 5. **Queue**: Draft saved to `twitter_queue.db` (status: pending)
-6. **Approve**: Human reviews in infra-dashboard Twitter panel (approve/reject/edit)
+6. **Approve**: Human reviews in approval queue (approve/reject/edit)
 7. **Post**: Scheduler posts approved items via `TwitterPoster` → Gateway → Twitter API
 
 ## Prompt Injection Defense (3 layers)
@@ -48,7 +48,13 @@ Pinchtab MCP → TwitterBrowser → browse_feed() → tweets
 
 ## Gateway
 
-Runs on host at `localhost:1456`. Loaded via `pass` CLI:
+Runs on a configurable host/port (set `AUTOGENESIS_TWITTER__GATEWAY_URL`). Requires Twitter API credentials via environment variables:
+
+- `TWITTER_API_KEY`
+- `TWITTER_API_SECRET`
+- `TWITTER_ACCESS_TOKEN`
+- `TWITTER_ACCESS_SECRET`
+- `TWITTER_BEARER_TOKEN`
 
 ```bash
 python -m autogenesis_twitter.gateway --gateway-token <token>
@@ -61,7 +67,7 @@ python -m autogenesis_twitter.gateway --gateway-token <token>
 
 Auth: Bearer token in `Authorization` header (matches `--gateway-token`).
 
-Registered in infra-dashboard as `autogenesis-gateway` (port 1456).
+Register the gateway in your service manager if you use one.
 
 ## Scheduler
 
@@ -85,15 +91,15 @@ twitter:
   timezone: "America/New_York"
   session_interval_minutes: 30
   max_drafts_per_session: 10
-  gateway_url: "http://127.0.0.1:1456"
+  gateway_url: ""                # set to your gateway's URL, e.g. "http://127.0.0.1:1456"
   queue_path: ""           # defaults to $XDG_STATE_HOME/autogenesis/twitter_queue.db
   worldview_path: ""       # defaults to $XDG_STATE_HOME/autogenesis/twitter_worldview.json
   selectors_path: ""       # CSS/aria selectors for Pinchtab
 ```
 
-## Infra-Dashboard Integration
+## Approval Queue Integration
 
-Queue panel at infra-dashboard shows pending drafts with approve/reject/edit actions.
-- API: `GET /api/twitter/queue`, `POST /api/twitter/queue/{id}/approve`, etc.
+Any dashboard or admin UI can read the tweet queue directly from the SQLite DB:
+- API endpoints to implement: `GET /api/twitter/queue`, `POST /api/twitter/queue/{id}/approve`, etc.
 - Reads same SQLite DB as QueueManager
 - DB path configurable via `AUTOGENESIS_TWITTER_QUEUE_DB` env var

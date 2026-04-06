@@ -15,7 +15,7 @@ class TestStripCodexBoilerplate:
         raw = (
             "OpenAI Codex v0.114.0 (research preview)\n"
             "--------\n"
-            "workdir: /home/gray/dev/AutoGenesis\n"
+            "workdir: /home/user/projects/AutoGenesis\n"
             "user\n"
             'Respond with JSON: [{"description": "..."}]\n'
             "mcp: excel ready\n"

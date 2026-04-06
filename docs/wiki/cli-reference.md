@@ -11,6 +11,21 @@ All commands: `uv run autogenesis <command>`
 | `run "prompt"` | Single-shot agent task |
 | `chat` | Interactive chat session |
 | `config show` | Print resolved config |
+| `project init [PATH]` | Bootstrap `.autogenesis/config.yaml` + GitNexus index |
+
+## Project (`project`)
+
+| Command | Description |
+|---------|-------------|
+| `project init [PATH]` | Create/merge `.autogenesis/config.yaml` with GitNexus defaults and run `gitnexus analyze` |
+
+### Examples
+
+```bash
+autogenesis project init .
+autogenesis project init /path/to/repo --force-index
+autogenesis project init . --skip-index
+```
 
 ## CEO Orchestrator (`ceo`)
 
@@ -66,7 +81,7 @@ autogenesis hr fire intern
 
 ```bash
 python -m autogenesis_twitter.gateway --gateway-token <token>
-# Listens on localhost:1456, loads Twitter API creds via `pass`
+# Listens on configurable host/port, loads Twitter API creds from env vars
 ```
 
 ## Meetings

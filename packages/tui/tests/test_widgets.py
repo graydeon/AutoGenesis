@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import pytest
-from textual.app import App, ComposeResult
-
 from autogenesis_tui.widgets.status_bar import StatusBar
+from textual.app import App, ComposeResult
 
 
 class _StatusBarApp(App):
@@ -94,7 +93,7 @@ async def test_roster_set_status():
         assert roster.rows[0].status == "working"
 
 
-from autogenesis_tui.widgets.stream import AgentStream, StreamEntry
+from autogenesis_tui.widgets.stream import AgentStream
 
 
 class _StreamApp(App):
@@ -141,7 +140,7 @@ async def test_stream_filter_by_employee():
         assert all(e.source == "CEO" for e in visible)
 
 
-from autogenesis_tui.widgets.right_panel import RightPanel, GoalEntry
+from autogenesis_tui.widgets.right_panel import GoalEntry, RightPanel
 
 
 class _RightPanelApp(App):

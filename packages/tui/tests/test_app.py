@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import pytest
-
 from autogenesis_tui.app import AutogenesisApp
 from autogenesis_tui.widgets import AgentStream, EmployeeRoster, InputBar, RightPanel, StatusBar
 

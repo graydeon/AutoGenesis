@@ -24,7 +24,11 @@ venv/
 *.swo
 
 # AutoGenesis
-.autogenesis/secrets/
+.autogenesis/
+.gitnexus/
+docs/superpowers/
+.codex
+.superpowers/
 
 # Testing
 .coverage

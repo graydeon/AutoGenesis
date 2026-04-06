@@ -33,7 +33,7 @@ def login_command(
 
     console.print("[blue]Launching Codex CLI login...[/blue]")
     try:
-        result = subprocess.run(["codex", "login"], check=False)  # noqa: S603, S607
+        result = subprocess.run(["codex", "login"], check=False)  # noqa: S607
         if result.returncode == 0:
             console.print("[green]Login successful![/green]")
         else:

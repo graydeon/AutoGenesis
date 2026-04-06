@@ -46,7 +46,7 @@ class TestTwitterConfig:
         cfg = TwitterConfig()
         assert cfg.enabled is False
         assert cfg.active_hours_start == "09:00"
-        assert cfg.gateway_url == "http://127.0.0.1:1456"
+        assert cfg.gateway_url == ""
 
     def test_in_root_config(self):
         cfg = AutoGenesisConfig()

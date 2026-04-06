@@ -22,7 +22,7 @@ class TestSubAgentManager:
     async def test_spawn_returns_result(self):
         """Spawn a simple echo command as sub-agent."""
         mgr = SubAgentManager(codex_binary="echo")
-        result = await mgr.spawn(task="hello world", cwd="/tmp")  # noqa: S108
+        result = await mgr.spawn(task="hello world", cwd="/tmp")
         assert result.exit_code == 0
         assert "hello" in result.output.lower() or result.output != ""
 
@@ -32,7 +32,7 @@ class TestSubAgentManager:
 
     async def test_cancel(self):
         mgr = SubAgentManager(codex_binary="sleep")
-        task = asyncio.create_task(mgr.spawn(task="10", cwd="/tmp"))  # noqa: S108
+        task = asyncio.create_task(mgr.spawn(task="10", cwd="/tmp"))
         await asyncio.sleep(0.1)
         task.cancel()
         with pytest.raises(asyncio.CancelledError):
@@ -40,18 +40,18 @@ class TestSubAgentManager:
 
     async def test_timeout(self):
         mgr = SubAgentManager(codex_binary="sleep")
-        result = await mgr.spawn(task="10", cwd="/tmp", timeout=0.5)  # noqa: S108
+        result = await mgr.spawn(task="10", cwd="/tmp", timeout=0.5)
         assert result.exit_code != 0 or result.timed_out is True
 
     async def test_depth_env_var(self):
         """AUTOGENESIS_AGENT_DEPTH is set for child processes."""
         mgr = SubAgentManager(codex_binary="env")
-        result = await mgr.spawn(task="", cwd="/tmp")  # noqa: S108
+        result = await mgr.spawn(task="", cwd="/tmp")
         assert "AUTOGENESIS_AGENT_DEPTH=1" in result.output
 
 
 class TestSubAgentManagerExtended:
     async def test_spawn_with_env_overrides(self):
         mgr = SubAgentManager(codex_binary="env")
-        result = await mgr.spawn(task="", cwd="/tmp", env_overrides={"CUSTOM_VAR": "hello"})  # noqa: S108
+        result = await mgr.spawn(task="", cwd="/tmp", env_overrides={"CUSTOM_VAR": "hello"})
         assert "CUSTOM_VAR=hello" in result.output

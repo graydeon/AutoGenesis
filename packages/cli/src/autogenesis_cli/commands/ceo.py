@@ -68,6 +68,7 @@ def _get_orchestrator(display=None):  # noqa: ANN001, ANN202
     from autogenesis_core.config import load_config
     from autogenesis_core.credentials import EnvCredentialProvider
     from autogenesis_core.sub_agents import SubAgentManager
+    from autogenesis_employees.gitnexus import GitNexusContextProvider
     from autogenesis_employees.orchestrator import CEOOrchestrator
     from autogenesis_employees.registry import EmployeeRegistry
     from autogenesis_employees.runtime import EmployeeRuntime
@@ -117,6 +118,15 @@ def _get_orchestrator(display=None):  # noqa: ANN001, ANN202
         codex=codex,
         dispatch_timeout=cfg.employees.dispatch_timeout,
         reasoning_mgr=reasoning_mgr,
+        context_provider=GitNexusContextProvider(
+            enabled=cfg.gitnexus.enabled,
+            binary=cfg.gitnexus.binary,
+            auto_index=cfg.gitnexus.auto_index,
+            query_limit=cfg.gitnexus.query_limit,
+            max_context_chars=cfg.gitnexus.max_context_chars,
+            command_timeout_seconds=cfg.gitnexus.command_timeout_seconds,
+            index_timeout_seconds=cfg.gitnexus.index_timeout_seconds,
+        ),
     )
 
 

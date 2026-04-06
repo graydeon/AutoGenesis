@@ -126,7 +126,7 @@ curl http://127.0.0.1:1456/health
 python -m autogenesis_twitter.gateway --gateway-token <token>
 ```
 
-Gateway needs `pass` CLI with keys at: `twitter/api_key`, `twitter/api_secret`, `twitter/access_token`, `twitter/access_secret`, `twitter/bearer_token`
+Gateway needs Twitter API credentials. Set these environment variables: `TWITTER_API_KEY`, `TWITTER_API_SECRET`, `TWITTER_ACCESS_TOKEN`, `TWITTER_ACCESS_SECRET`, `TWITTER_BEARER_TOKEN`
 
 **Scheduler exits immediately**
 
@@ -138,12 +138,12 @@ Gateway needs `pass` CLI with keys at: `twitter/api_key`, `twitter/api_secret`, 
 
 ```
 Queue has approved items? → autogenesis twitter queue
-Gateway running?          → curl localhost:1456/health
+Gateway running?          → curl $GATEWAY_URL/health
 Gateway token matches?    → AUTOGENESIS_GATEWAY_TOKEN env var
-Twitter API creds valid?  → Check pass store entries
+Twitter API creds valid?  → Check TWITTER_* env vars are set
 ```
 
-**Queue panel not showing in infra-dashboard**
+**Queue panel not showing in your dashboard**
 
 Check `AUTOGENESIS_TWITTER_QUEUE_DB` env var points to the correct SQLite file. Default: `$XDG_STATE_HOME/autogenesis/twitter_queue.db`
 
@@ -262,7 +262,7 @@ autogenesis twitter status
 # Check config resolution
 autogenesis config show
 
-# Check gateway health
+# Check gateway health (replace URL with your gateway_url)
 curl -s http://127.0.0.1:1456/health | python -m json.tool
 
 # List all databases

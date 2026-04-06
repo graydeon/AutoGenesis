@@ -33,6 +33,7 @@ def _context_sections(
     brain_context: list[str] | None,
     inbox_messages: list[str] | None,
     changelog_entries: list[str] | None,
+    project_context: str | None,
     task: str,
 ) -> list[str]:
     sections: list[str] = []
@@ -45,22 +46,33 @@ def _context_sections(
     if changelog_entries:
         sections.append("\n## Recent Team Activity\n")
         sections.extend(changelog_entries)
+    if project_context:
+        sections.append(f"\n{project_context}")
     if task:
         sections.append(f"\n## Your Current Task\n\n{task}")
     return sections
 
 
 class EmployeeRuntime:
-    def build_system_prompt(
+    def build_system_prompt(  # noqa: PLR0913
         self,
         config: EmployeeConfig,
         brain_context: list[str] | None = None,
         inbox_messages: list[str] | None = None,
         changelog_entries: list[str] | None = None,
+        project_context: str | None = None,
         task: str = "",
     ) -> str:
         sections = _role_section(config)
-        sections.extend(_context_sections(brain_context, inbox_messages, changelog_entries, task))
+        sections.extend(
+            _context_sections(
+                brain_context,
+                inbox_messages,
+                changelog_entries,
+                project_context,
+                task,
+            )
+        )
         sections.append(
             "\n## Standing Instructions\n\n"
             "- Document your work using changelog_write when you complete tasks\n"
