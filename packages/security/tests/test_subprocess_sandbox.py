@@ -22,6 +22,18 @@ class TestSubprocessSandbox:
         _output, code = await sandbox.execute("false")
         assert code != 0
 
+    async def test_denies_shell_command(self):
+        sandbox = SubprocessSandbox()
+        output, code = await sandbox.execute("sh -c 'echo unsafe'")
+        assert code != 0
+        assert "denied" in output.lower()
+
+    async def test_denies_cwd_outside_workspace(self, tmp_path):
+        sandbox = SubprocessSandbox(workspace_root=tmp_path)
+        output, code = await sandbox.execute("pwd", cwd=tmp_path.parent)
+        assert code != 0
+        assert "outside the workspace" in output.lower()
+
     async def test_cleanup(self):
         sandbox = SubprocessSandbox()
         await sandbox.cleanup()  # should not raise

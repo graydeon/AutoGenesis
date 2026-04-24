@@ -42,6 +42,7 @@ async def test_connect_sends_initialize(mock_ws):
 async def test_start_thread_returns_thread_id(mock_ws):
     events = []
     client = None
+    thread_start_params = {}
 
     async def fake_send(msg):
         data = json.loads(msg)
@@ -50,6 +51,7 @@ async def test_start_thread_returns_thread_id(mock_ws):
             if data["method"] == "initialize":
                 fut.set_result({"serverInfo": {}})
             elif data["method"] == "thread/start":
+                thread_start_params.update(data["params"])
                 fut.set_result({"thread": {"id": "thread-abc-123"}})
 
     mock_ws.send = fake_send
@@ -61,6 +63,7 @@ async def test_start_thread_returns_thread_id(mock_ws):
         thread_id = await client.start_thread(base_instructions="You are CEO.")
 
     assert thread_id == "thread-abc-123"
+    assert thread_start_params["approvalPolicy"] == "on-request"
 
 
 @pytest.mark.asyncio

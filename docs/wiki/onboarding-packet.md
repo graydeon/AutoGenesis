@@ -2,10 +2,12 @@
 
 **Owner:** `technical-writer`
 **Audience:** New and existing AutoGenesis employees
-**Status:** Active
-**Last updated:** 2026-03-19
+**Status:** Active onboarding hub; March 2026 schedule archived
+**Last updated:** 2026-04-24
 
-This welcome packet is the published day-one hub for the current onboarding docs set. It pulls together the [README](../../README.md), [Handoff](../../HANDOFF.md), [Onboarding Plan](onboarding-plan.md), orientation agenda, and the key links each employee needs before the live session on **Tuesday, March 24, 2026, 10:00–11:00 AM Central Time**.
+This welcome packet is the published day-one hub for the current onboarding docs set. It pulls together the [README](../../README.md), [Handoff](../../HANDOFF.md), [Onboarding Plan](onboarding-plan.md), orientation agenda, and the key links each employee needs before orientation.
+
+> Note: The March 2026 orientation schedule is now historical. Use the checklist and role map as the reusable onboarding baseline, and set fresh dates in the onboarding plan for the next cohort.
 
 ## Start Here
 
@@ -23,8 +25,8 @@ This welcome packet is the published day-one hub for the current onboarding docs
 | Item | Details |
 |---|---|
 | Session | AutoGenesis employee orientation |
-| Date | Tuesday, March 24, 2026 |
-| Time | 10:00–11:00 AM Central Time (`America/Chicago`) |
+| Historical date | Tuesday, March 24, 2026 |
+| Historical time | 10:00–11:00 AM Central Time (`America/Chicago`) |
 | Host | `cto` |
 | Planning DRI | `product-manager` |
 | Notes owner | `technical-writer` |
@@ -65,7 +67,7 @@ AutoGenesis exists to turn high-level product goals into completed work through 
 - [ ] Run `uv run autogenesis hr list`.
 - [ ] Confirm access to the repo, terminal environment, docs, chat, calendar, and shared drives.
 - [ ] Prepare a 30–60 second introduction with your role, focus area, current priority, and one question or blocker.
-- [ ] Raise any missing-access or setup blocker before **Monday, March 23, 2026, 5:00 PM Central Time**.
+- [ ] Raise any missing-access or setup blocker before the current cohort's pre-work deadline.
 
 ### Role-specific day-one checklist
 

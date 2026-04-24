@@ -2,11 +2,11 @@
 
 **Owner:** `security-engineer`
 **Audience:** All AutoGenesis employees
-**Status:** Mandatory pre-work before orientation
+**Status:** Active baseline; original March 2026 orientation deadline is archived
 **Estimated read time:** 5 minutes
-**Last updated:** 2026-03-19
+**Last updated:** 2026-04-24
 
-This module is the minimum day-one security baseline for every AutoGenesis employee. Complete it before **Monday, March 23, 2026, 5:00 PM Central Time**, alongside the onboarding packet and plan. The Security Engineer will review highlights during orientation, but everyone is expected to arrive having already read and applied the checklist below.
+This module is the minimum day-one security baseline for every AutoGenesis employee. For future onboardings, complete it before your orientation session alongside the onboarding packet and plan. The Security Engineer should review highlights during orientation, but everyone is expected to arrive having already read and applied the checklist below.
 
 ## Mandatory Acknowledgement
 
@@ -94,4 +94,4 @@ Complete all items before orientation:
 - [ ] MFA is enabled everywhere it is available for company accounts.
 - [ ] I know where secrets may live and where they must never appear.
 - [ ] I know the 15-minute incident-reporting rule and the first contacts.
-- [ ] I will raise any remaining security blocker before **Monday, March 23, 2026, 5:00 PM Central Time**.
+- [ ] I will raise any remaining security blocker before my orientation session or first assigned task.

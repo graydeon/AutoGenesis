@@ -1,6 +1,6 @@
 # AutoGenesis — Handoff Document
 
-> Read this first when picking up the project. Updated: 2026-04-05 (Session Context)
+> Read this first when picking up the project. Updated: 2026-04-24 (repository review and security audit)
 
 ## What This Is
 
@@ -12,12 +12,25 @@ Autonomous agent harness powered by OpenAI Codex CLI. Five integrated systems:
 4. **Twitter Agent** — Autonomous persona that browses Twitter via Pinchtab, drafts tweets, queues for human approval
 5. **TUI** — Textual-based Command Center (`autogenesis tui`): 3-column layout with live roster, streaming agent output, goals/tokens panel, theme picker
 
-## Current State (2026-04-05 Session)
+## Current State (2026-04-24 Review)
 
-### ✅ Completed Today
-- **443 tests passing** (0 failures)
-- **All lint issues fixed** — Clean `ruff check packages/` (was 32+ issues)
-  - Fixed PLC0415, ASYNC240, TC002/TC003, BLE001, TRY003, EM101, ANN401, E501, FBT001, RUF001, E402, RUF012
+### Verified Locally
+- **457 tests passing** on Python 3.13.12
+- **Coverage passes** the CI threshold: 86.65% total coverage
+- **Full Ruff lint passes** with `uv run ruff check packages/`
+- **Strict mypy passes** with `uv run mypy packages/`
+- **Package builds pass** with `uv build --all-packages`
+- **Security lint passes** with `uv run ruff check --select S packages/`
+- **Dependency audit passes** with `uvx pip-audit` reporting no known vulnerabilities
+- **GitNexus index refreshed**: 4,156 symbols, 8,842 relationships, 225 flows
+
+### Current Failures / Gaps
+- **GitHub Nightly is still failing on remote `origin/main`** as of 2026-04-24 because these fixes are not pushed yet.
+- **Remote GitHub branch is behind local**: `origin/main` is `7fa9858`, local `main` is `92b39c0`.
+- **Token counting is still deferred** in the Codex integration.
+- **Guardrails and audit logging are not universal** across all execution paths yet.
+
+### Recent TUI Work
 - **TUI keyboard navigation** — Full roster control without mouse:
   - ↑/↓: Single row navigation
   - PGUP/PGDOWN or Ctrl+B/Ctrl+F: Jump 5 rows
@@ -29,11 +42,12 @@ Autonomous agent harness powered by OpenAI Codex CLI. Five integrated systems:
 - **CEO in roster** — CEO Orchestrator now appears as first item with "active" status
 - **GitNexus integration** — Task-specific code context injection for employees
 - **Project init command** — `autogenesis project init` for per-project GitNexus setup
-- **Twitter gateway** — Credential-isolated tweet posting via HTTP gateway
+- **Twitter gateway** — Credential-isolated tweet posting via HTTP gateway with required auth by default and aligned poster/gateway response schema
 
 ### ⚠️ Known Limitations
 - **Live Codex connection** requires real ChatGPT Plus OAuth credentials (TUI shows "disconnected" without them)
-- **TUI mouse clicks** on roster have offset issues — keyboard navigation recommended
+- **Token counting is not fully ported** to the Codex integration yet
+- **Security guardrails and audit logs are not fully wired** into every tool/public-action path
 
 ## Quick Start
 
@@ -42,7 +56,7 @@ Autonomous agent harness powered by OpenAI Codex CLI. Five integrated systems:
 uv sync --all-packages --extra dev
 
 # 2. Verify tests
-uv run python -m pytest packages/ -q  # Should show 443 passed
+uv run pytest packages/*/tests tests -q --tb=short  # Should show 457 passed
 
 # 3. Initialize project (first time only)
 uv run autogenesis project init .
@@ -129,6 +143,8 @@ uv run python -m pytest packages/employees/tests/ -q # Employees only
 | Doc | What it covers |
 |-----|---------------|
 | `docs/wiki/architecture.md` | Package map, key classes, data flow |
+| `docs/wiki/status-report.md` | Current validation, CI state, GitHub state, next priorities |
+| `docs/wiki/security-audit.md` | Security findings and hardening roadmap |
 | `docs/wiki/cli-reference.md` | All CLI commands with examples |
 | `docs/wiki/employee-system.md` | Employee roles, brain, inbox, HR ops |
 | `docs/wiki/backend-walkthrough.md` | Backend services, APIs, databases |
@@ -159,7 +175,7 @@ uv run python -m pytest packages/employees/tests/ -q # Employees only
 
 ## Key Architectural Decisions
 
-- **Codex CLI as subprocess** — SubAgentManager spawns `codex --quiet --full-auto` with system prompt file
+- **Codex CLI as subprocess** — SubAgentManager spawns `codex exec` with a system prompt file; defaults are now `approval_policy="on-request"` and `sandbox_mode="workspace-write"`, with unsafe bypass available only by explicit opt-in
 - **No LiteLLM** — Direct OpenAI Responses API via httpx-sse
 - **SQLite everywhere** — brain.db, inbox.db, ceo.db, union.db, twitter_queue.db (all via aiosqlite)
 - **Markdown plans** — CEO writes human-readable plan files, updates checkboxes as work completes
@@ -169,12 +185,12 @@ uv run python -m pytest packages/employees/tests/ -q # Employees only
 
 ## Next Steps / Open Items
 
-1. **Test live Codex connection** — Requires ChatGPT Plus OAuth setup
-2. **Employee self-registration** — Currently manual via `hr hire`
-3. **Task result persistence** — Completed task outputs not yet surfaced in TUI
-4. **Theme customization** — User-defined themes beyond built-in 6
-5. **GitNexus batch queries** — Parallel context gathering for large repos
+1. **Push/reconcile CI fixes** — Get remote Nightly green from the local passing state.
+2. **Wire token counting** — Make token efficiency measurable with real Codex/Responses usage.
+3. **Finish guardrail integration** — Enforce prompt/output guardrails at intake, tool approval, external-content, and public-action boundaries.
+4. **Expand audit logging** — Emit redacted policy/tool/public-action audit events consistently.
+5. **Add supply-chain controls** — Dependabot, dependency review, CodeQL/Scorecard, and release attestations.
 
 ---
 
-*Last updated: 2026-04-05. For questions, check `docs/wiki/troubleshooting.md` first.*
+*Last updated: 2026-04-24. For questions, check `docs/wiki/status-report.md`, `docs/wiki/security-audit.md`, and `docs/wiki/troubleshooting.md` first.*

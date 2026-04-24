@@ -97,58 +97,39 @@ class EmployeeRoster(Widget):
     def deselect(self) -> None:
         self.select(None)
 
+    def _selected_index(self, ids: list[str]) -> int | None:
+        current = self.selected_employee
+        return ids.index(current) if current in ids else None
+
+    def _select_relative(self, ids: list[str], offset: int, *, wrap: bool = False) -> None:
+        idx = self._selected_index(ids)
+        if idx is None:
+            idx = 0 if offset > 0 else len(ids) - 1
+        elif wrap:
+            idx = (idx + offset) % len(ids)
+        else:
+            idx = min(len(ids) - 1, max(0, idx + offset))
+        self.select(ids[idx])
+
     def on_key(self, event: Key) -> None:
         if not self.rows:
             return
-        current = self.selected_employee
         ids = [r.id for r in self.rows]
+        key = event.key
 
-        if event.key == "up":
-            if current is None:
-                idx = len(ids) - 1
-            else:
-                idx = (ids.index(current) - 1) % len(ids) if current in ids else 0
-            self.select(ids[idx])
-            event.stop()
-        elif event.key == "down":
-            if current is None:
-                idx = 0
-            else:
-                idx = (ids.index(current) + 1) % len(ids) if current in ids else 0
-            self.select(ids[idx])
-            event.stop()
-        elif event.key in ("pageup", "ctrl+b"):
-            # Jump to previous employee (5 rows at a time)
-            if current is None:
-                idx = len(ids) - 1
-            else:
-                current_idx = ids.index(current) if current in ids else 0
-                idx = max(0, current_idx - 5)
-            self.select(ids[idx])
-            event.stop()
-        elif event.key in ("pagedown", "ctrl+f"):
-            # Jump to next employee (5 rows at a time)
-            if current is None:
-                idx = 0
-            else:
-                current_idx = ids.index(current) if current in ids else 0
-                idx = min(len(ids) - 1, current_idx + 5)
-            self.select(ids[idx])
-            event.stop()
-        elif event.key == "home":
-            # Jump to CEO (first item)
-            if ids:
-                self.select(ids[0])
-            event.stop()
-        elif event.key == "end":
-            # Jump to last employee
-            if ids:
-                self.select(ids[-1])
-            event.stop()
-        elif event.key == "enter":
-            if current is not None:
-                self.deselect()
-            event.stop()
+        if key in ("up", "down"):
+            self._select_relative(ids, -1 if key == "up" else 1, wrap=True)
+        elif key in ("pageup", "ctrl+b", "pagedown", "ctrl+f"):
+            self._select_relative(ids, -5 if key in ("pageup", "ctrl+b") else 5)
+        elif key == "home":
+            self.select(ids[0])
+        elif key == "end":
+            self.select(ids[-1])
+        elif key == "enter":
+            self.deselect()
+        else:
+            return
+        event.stop()
 
     def on_click(self, event: Click) -> None:
         if not self.rows:

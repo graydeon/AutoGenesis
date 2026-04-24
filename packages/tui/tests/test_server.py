@@ -29,6 +29,8 @@ async def test_start_spawns_process():
     cmd = mock_exec.call_args[0]
     assert cmd[0] == "codex"
     assert "app-server" in cmd
+    assert 'approval_policy="on-request"' in cmd
+    assert 'sandbox_mode="workspace-write"' in cmd
     assert any(f"ws://127.0.0.1:{port}" in str(a) for a in cmd)
 
 

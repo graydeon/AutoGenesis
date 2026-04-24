@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
@@ -281,9 +282,8 @@ class TestCEOOrchestrator:
         await orch.initialize()
         result = await orch.run("Two step goal")
         plan_path = Path(result.plan_path)
-        # Tests can use blocking pathlib - small test files
-        assert plan_path.exists()  # noqa: ASYNC240
-        content = plan_path.read_text()  # noqa: ASYNC240
+        assert await asyncio.to_thread(plan_path.exists)
+        content = await asyncio.to_thread(plan_path.read_text)
         assert "Step 1" in content
         assert "Step 2" in content
         # Both subtasks should be checked off

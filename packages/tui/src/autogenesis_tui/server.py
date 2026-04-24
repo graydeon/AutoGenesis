@@ -9,14 +9,23 @@ import structlog
 logger = structlog.get_logger()
 
 _STARTUP_WAIT_SECONDS = 0.8
+_DEFAULT_APPROVAL_POLICY = "on-request"
+_DEFAULT_SANDBOX_MODE = "workspace-write"
 
 
 class AppServerManager:
     """Manages the lifecycle of a `codex app-server` subprocess."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        approval_policy: str = _DEFAULT_APPROVAL_POLICY,
+        sandbox_mode: str = _DEFAULT_SANDBOX_MODE,
+    ) -> None:
         self._process: asyncio.subprocess.Process | None = None
         self._port: int = 0
+        self._approval_policy = approval_policy
+        self._sandbox_mode = sandbox_mode
 
     @staticmethod
     def _find_free_port() -> int:
@@ -31,7 +40,9 @@ class AppServerManager:
             "codex",
             "app-server",
             "-c",
-            'approval_policy="never"',
+            f'approval_policy="{self._approval_policy}"',
+            "-c",
+            f'sandbox_mode="{self._sandbox_mode}"',
             "--listen",
             f"ws://127.0.0.1:{self._port}",
             stdout=asyncio.subprocess.PIPE,

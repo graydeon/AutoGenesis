@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypedDict
 
 from textual.message import Message
 from textual.reactive import reactive
@@ -19,6 +19,12 @@ class GoalEntry:
     completed: int
     total: int
     status: str = "executing"
+
+
+class EmployeePanelData(TypedDict):
+    memories: list[str]
+    inbox_count: int
+    training: list[str]
 
 
 class RightPanel(Widget):
@@ -45,7 +51,11 @@ class RightPanel(Widget):
     def __init__(self) -> None:
         super().__init__()
         self.goals: list[GoalEntry] = []
-        self._employee_data: dict[str, object] = {}
+        self._employee_data: EmployeePanelData = {
+            "memories": [],
+            "inbox_count": 0,
+            "training": [],
+        }
 
     def compose(self) -> ComposeResult:
         yield Static("", id="panel-content")
@@ -109,9 +119,9 @@ class RightPanel(Widget):
 
     def _render_employee(self) -> str:
         emp = self.focused_employee or ""
-        memories = list(self._employee_data.get("memories", []))  # type: ignore[arg-type]
-        inbox_count = int(self._employee_data.get("inbox_count", 0))  # type: ignore[arg-type]
-        training = list(self._employee_data.get("training", []))  # type: ignore[arg-type]
+        memories = self._employee_data["memories"]
+        inbox_count = self._employee_data["inbox_count"]
+        training = self._employee_data["training"]
         lines = [f"▶ {emp}", ""]
         if memories:
             lines += ["BRAIN (top memories)"] + [f"• {m[:20]}" for m in memories[:5]]

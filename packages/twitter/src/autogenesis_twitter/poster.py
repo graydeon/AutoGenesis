@@ -68,10 +68,12 @@ class TwitterPoster:
                     continue
                 return PostResult(success=False, error=f"Network error: {exc}")
 
-            data = response.json()
+            raw_data = response.json()
+            data: dict[str, Any] = raw_data if isinstance(raw_data, dict) else {}
 
             if response.status_code == 200:  # noqa: PLR2004
-                return PostResult(success=True, tweet_id=data.get("id", ""))
+                tweet_id = data.get("id") or data.get("tweet_id", "")
+                return PostResult(success=True, tweet_id=str(tweet_id))
 
             # Rate limit — retry with backoff
             if response.status_code == 429 and attempt < max_retries - 1:  # noqa: PLR2004
@@ -93,6 +95,9 @@ class TwitterPoster:
                 f"{self._gateway_url}/twitter/status",
                 headers=self._headers(),
             )
-            return response.json()
         except httpx.HTTPError as exc:
             return {"authenticated": False, "error": str(exc)}
+        raw_data = response.json()
+        if isinstance(raw_data, dict):
+            return raw_data
+        return {"authenticated": False, "error": "Invalid gateway response"}

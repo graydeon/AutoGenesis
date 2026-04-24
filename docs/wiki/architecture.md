@@ -1,5 +1,7 @@
 # Architecture
 
+**Last updated:** 2026-04-24
+
 ## Package Map
 
 ```
@@ -9,11 +11,12 @@ packages/
   tools/       → Tool base, registry, 8 built-in tools, progressive disclosure
   twitter/     → Browser, poster, queue, guardrails, worldview, scheduler, gateway, parser
   cli/         → Typer app, commands: login/logout/run/chat/config/ceo/hr/twitter/meeting/standup/union
-  tokens/      → Budget, cache, compression, counter, reporter (v0.1 — not yet wired to Codex)
-  optimizer/   → Prompt versioning, constitution, evaluator (v0.1 — not yet wired)
-  security/    → Guardrails, allowlist, audit, scanner, sandbox (v0.1 — not yet wired)
-  mcp/         → MCP client/server (v0.1 — not yet wired)
-  plugins/     → Plugin interface + loader (v0.1 — not yet wired)
+  tui/         → Textual command center, app-server manager, WebSocket client, widgets, themes
+  tokens/      → Budget, cache, compression, reporter; token counter is still deferred
+  optimizer/   → Prompt versioning, constitution, evaluator; not yet on the critical runtime path
+  security/    → Guardrails, allowlist, audit, scanner, sandbox primitives; not yet fully enforced in runtime
+  mcp/         → MCP client/server/registry
+  plugins/     → Plugin interface + loader
 ```
 
 ## Core Data Flow
@@ -54,6 +57,9 @@ User CLI command
 | `TwitterScheduler` | twitter | `scheduler.py` | Permission gate, active hours, cycle orchestration |
 | `QueueManager` | twitter | `queue.py` | SQLite tweet draft queue (pending/approved/posted) |
 | `GatewayHandler` | twitter | `gateway.py` | HTTP server signing tweets with real API creds |
+| `AutogenesisApp` | tui | `app.py` | Textual command center shell |
+| `AppServerManager` | tui | `server.py` | Starts/stops local `codex app-server` |
+| `CodexWSClient` | tui | `client.py` | JSON-RPC WebSocket client for app-server |
 
 ## Database Files
 
@@ -90,3 +96,15 @@ Host: stores secrets via environment variables or a secret manager
   → Codex OAuth: browser PKCE flow → JWT stored at ~/.local/share/autogenesis/auth.json (0600)
 VM/Agent: receives scoped tokens only, never raw API keys
 ```
+
+## Security-Sensitive Boundaries
+
+| Boundary | Current behavior | Hardening status |
+|----------|------------------|------------------|
+| Codex subprocess dispatch | `SubAgentManager.spawn()` launches employee work through Codex CLI subprocesses | Defaults to approval-on-request and workspace-write sandbox; unsafe bypass requires explicit opt-in |
+| Tool execution | Shell and filesystem tools execute locally through workspace and command policies | Workspace and command controls are in place; audit hooks still need to be universal |
+| TUI app-server | Local WebSocket to `codex app-server` | Defaults to approval-on-request and workspace-write sandbox; readiness/live validation still needed |
+| Twitter gateway | Host-local HTTP gateway signs public-posting requests | Auth, size/JSON checks, status endpoint, and poster schema are covered by tests |
+| Credentials | OAuth credentials stored at `~/.local/share/autogenesis/auth.json` with `0600` permissions | Avoid trusting unverified JWT claims for authorization |
+
+See [Security Audit](security-audit.md) for current findings and [Status Report](status-report.md) for validation status.

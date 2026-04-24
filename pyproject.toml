@@ -64,6 +64,11 @@ ignore = [
 "**/mcp_tool.py" = ["PLC0415"]  # lazy imports intentional
 "**/mcp/**/*.py" = ["PLC0415"]  # lazy imports for MCP SDK
 "**/cli/**/*.py" = ["FBT", "PLC0415", "TC002"]  # Typer requires bool args, lazy imports, and type-only imports used at runtime
+"packages/core/src/autogenesis_core/sub_agents.py" = ["FBT001", "FBT002"]  # bool args preserve constructor compatibility
+"packages/cli/src/autogenesis_cli/commands/login.py" = ["S603"]  # fixed codex login command
+"**/tui/src/**/*.py" = ["PLC0415"]  # lazy imports keep optional TUI integrations importable
+"packages/tui/tests/test_themes.py" = ["PLC0415"]  # localized import avoids slow collection
+"packages/twitter/src/autogenesis_twitter/gateway.py" = ["N802"]  # BaseHTTPRequestHandler requires do_GET/do_POST
 "**/twitter/src/**/*.py" = ["ASYNC2"]
 "**/employees/src/**/*.py" = ["ASYNC2"]
 
@@ -72,7 +77,7 @@ python_version = "3.11"
 strict = true
 warn_return_any = true
 disallow_untyped_defs = true
-explicit_package_bases = true
+explicit_package_bases = false
 mypy_path = [
     "packages/core/src",
     "packages/tools/src",

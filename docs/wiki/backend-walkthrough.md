@@ -3,7 +3,7 @@
 **Owner:** `backend-engineer`
 **Audience:** New hires and engineers re-entering the codebase
 **Status:** Active
-**Last updated:** 2026-03-19
+**Last updated:** 2026-04-24
 
 This is the short backend briefing for onboarding. AutoGenesis is **CLI-first**, so most backend boundaries are Python managers and subprocesses rather than a traditional long-running REST or GraphQL service. The two main external HTTP boundaries are the OpenAI Responses API and the host-local Twitter signing gateway.
 
@@ -21,7 +21,7 @@ This is the short backend briefing for onboarding. AutoGenesis is **CLI-first**,
 
 - **Primary app interface:** the `autogenesis` CLI, not a public web API.
 - **External model API:** `CodexClient` streams the OpenAI Responses API over SSE in `packages/core/src/autogenesis_core/client.py`.
-- **Subprocess boundary:** `SubAgentManager` launches `codex exec --full-auto` workers for CEO reasoning and employee execution in `packages/core/src/autogenesis_core/sub_agents.py`.
+- **Subprocess boundary:** `SubAgentManager` launches `codex exec` workers for CEO reasoning and employee execution in `packages/core/src/autogenesis_core/sub_agents.py`. It now defaults to approval-on-request plus workspace-write sandbox; unsafe bypass requires explicit opt-in.
 - **Host auth boundary:** `packages/core/src/autogenesis_core/auth.py` handles PKCE OAuth on the host and stores tokens at `~/.local/share/autogenesis/auth.json` with `0600` permissions.
 - **Local HTTP boundary:** `packages/twitter/src/autogenesis_twitter/gateway.py` runs on `127.0.0.1:1456` and signs tweet requests so agent workspaces never receive raw Twitter credentials.
 - **In-process event API:** `EventBus` publishes lifecycle events for loops, tools, employees, CEO orchestration, and Twitter flows.

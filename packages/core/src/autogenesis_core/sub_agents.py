@@ -23,6 +23,9 @@ from pydantic import BaseModel
 logger = structlog.get_logger()
 
 _MAX_OUTPUT_CHARS = 50_000
+_DEFAULT_CODEX_APPROVAL_POLICY = "on-request"
+_DEFAULT_CODEX_SANDBOX_MODE = "workspace-write"
+_UNSAFE_BYPASS_ENV = "AUTOGENESIS_CODEX_UNSAFE_BYPASS"
 
 
 class SubAgentResult(BaseModel):
@@ -40,19 +43,29 @@ class SubAgentResult(BaseModel):
 class SubAgentManager:
     """Manages supervised Codex CLI sub-agent processes."""
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         max_concurrent: int = 3,
         codex_binary: str = "codex",
-        stream_output: bool = False,  # noqa: FBT001, FBT002
+        stream_output: bool = False,
         on_output: Callable[[str, str], None] | None = None,
         extra_flags: list[str] | None = None,
+        approval_policy: str = _DEFAULT_CODEX_APPROVAL_POLICY,
+        sandbox_mode: str = _DEFAULT_CODEX_SANDBOX_MODE,
+        unsafe_bypass: bool | None = None,
     ) -> None:
         self.max_concurrent = max_concurrent
         self._codex_binary = codex_binary
         self._stream_output = stream_output
         self._on_output = on_output
         self._extra_flags = extra_flags or []
+        self._approval_policy = approval_policy
+        self._sandbox_mode = sandbox_mode
+        self._unsafe_bypass = (
+            os.environ.get(_UNSAFE_BYPASS_ENV, "").lower() in {"1", "true", "yes"}
+            if unsafe_bypass is None
+            else unsafe_bypass
+        )
         self._semaphore = asyncio.Semaphore(max_concurrent)
         self._active: dict[str, asyncio.subprocess.Process] = {}
 
@@ -76,12 +89,19 @@ class SubAgentManager:
     def _build_cmd_args(self, task: str, prompt_file: str | None) -> list[str]:
         """Build the command argument list."""
         if self._codex_binary == "codex":
-            cmd_args = [
-                self._codex_binary,
-                "exec",
-                "--dangerously-bypass-approvals-and-sandbox",
-                *self._extra_flags,
-            ]
+            cmd_args = [self._codex_binary, "exec"]
+            if self._unsafe_bypass:
+                cmd_args.append("--dangerously-bypass-approvals-and-sandbox")
+            else:
+                cmd_args.extend(
+                    [
+                        "-c",
+                        f'approval_policy="{self._approval_policy}"',
+                        "-c",
+                        f'sandbox_mode="{self._sandbox_mode}"',
+                    ]
+                )
+            cmd_args.extend(self._extra_flags)
             if prompt_file:
                 cmd_args.extend(["-c", f"model_instructions_file={prompt_file}"])
             cmd_args.append(task)

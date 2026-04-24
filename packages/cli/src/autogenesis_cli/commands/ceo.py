@@ -4,12 +4,22 @@ from __future__ import annotations
 
 import asyncio
 import re
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import typer
 from rich.console import Console
 from rich.table import Table
 
+if TYPE_CHECKING:
+    from collections.abc import Callable, Coroutine
+
+    from autogenesis_core.events import Event
+    from autogenesis_employees.orchestrator import CEOOrchestrator
+
+    from autogenesis_cli.live_display import AgentLiveDisplay
+
 console = Console()
+_T = TypeVar("_T")
 
 ceo_app = typer.Typer(
     name="ceo",
@@ -36,7 +46,7 @@ _SKIP_PREFIXES = (
 )
 
 
-def _make_output_handler(display):  # noqa: ANN001, ANN202
+def _make_output_handler(display: AgentLiveDisplay) -> Callable[[str, str], None]:
     """Create an on_output callback that feeds the live display."""
 
     def handler(label: str, line: str) -> None:
@@ -59,7 +69,7 @@ def _make_output_handler(display):  # noqa: ANN001, ANN202
     return handler
 
 
-def _get_orchestrator(display=None):  # noqa: ANN001, ANN202
+def _get_orchestrator(display: AgentLiveDisplay | None = None) -> CEOOrchestrator:
     """Lazy-build a CEOOrchestrator with real dependencies."""
     import os
     from pathlib import Path
@@ -130,7 +140,7 @@ def _get_orchestrator(display=None):  # noqa: ANN001, ANN202
     )
 
 
-def _run_async(coro):  # noqa: ANN001, ANN202
+def _run_async(coro: Coroutine[Any, Any, _T]) -> _T:
     """Run an async coroutine from sync Typer command."""
     return asyncio.run(coro)
 
@@ -163,7 +173,7 @@ def ceo_run(  # noqa: C901, PLR0915
 
     display = AgentLiveDisplay()
 
-    def _on_event(event) -> None:  # noqa: ANN001
+    def _on_event(event: Event) -> None:
         et = event.event_type
         data = event.data
         if et == EventType.CEO_GOAL_START:
@@ -246,7 +256,10 @@ def ceo_run(  # noqa: C901, PLR0915
 
 @ceo_app.command(name="dispatch")
 def ceo_dispatch(
-    task_id: str = typer.Argument(None, help="Specific task ID (or dispatches highest priority)"),
+    task_id: str | None = typer.Argument(
+        None,
+        help="Specific task ID (or dispatches highest priority)",
+    ),
 ) -> None:
     """Execute next queued task or a specific one."""
     from autogenesis_cli.live_display import AgentLiveDisplay
@@ -346,9 +359,8 @@ def ceo_plan(
             await orch.close()
             return
         plan_path = Path(goal["plan_path"])
-        # CLI commands can use blocking pathlib - not a performance issue for CLI
-        if plan_path.exists():  # noqa: ASYNC240
-            console.print(plan_path.read_text())  # noqa: ASYNC240
+        if await asyncio.to_thread(plan_path.exists):
+            console.print(await asyncio.to_thread(plan_path.read_text))
         else:
             console.print(f"[red]Plan file not found: {plan_path}[/red]")
         await orch.close()

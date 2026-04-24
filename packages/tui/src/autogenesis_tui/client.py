@@ -15,9 +15,16 @@ logger = structlog.get_logger()
 class CodexWSClient:
     """JSON-RPC 2.0 WebSocket client for the codex app-server protocol."""
 
-    def __init__(self, port: int, on_event: Callable[[dict[str, Any]], None]) -> None:
+    def __init__(
+        self,
+        port: int,
+        on_event: Callable[[dict[str, Any]], None],
+        *,
+        approval_policy: str = "on-request",
+    ) -> None:
         self._port = port
         self._on_event = on_event
+        self._approval_policy = approval_policy
         self._ws: ClientConnection | None = None
         self._pending: dict[str, asyncio.Future[Any]] = {}
         self._active_thread_id: str | None = None
@@ -92,9 +99,10 @@ class CodexWSClient:
         self,
         base_instructions: str | None = None,
         cwd: str | None = None,
+        approval_policy: str | None = None,
     ) -> str:
         """Start a new thread. Returns the thread ID."""
-        params: dict[str, Any] = {"approvalPolicy": "never"}
+        params: dict[str, Any] = {"approvalPolicy": approval_policy or self._approval_policy}
         if base_instructions:
             params["baseInstructions"] = base_instructions
         if cwd:

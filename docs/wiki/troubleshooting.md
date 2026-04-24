@@ -1,5 +1,7 @@
 # Troubleshooting
 
+**Last updated:** 2026-04-24
+
 ## Decision Tree
 
 ```
@@ -41,19 +43,25 @@ This is a **known false positive**. Pyright cannot resolve uv workspace editable
 
 **Run tests correctly:**
 ```bash
-uv run python -m pytest packages/core/tests/ packages/employees/tests/ packages/tools/tests/ packages/cli/tests/ -v
+uv run pytest packages/*/tests tests -q --tb=short
 ```
 
 Do NOT use bare `python -m pytest` — must use `uv run` to get workspace packages on path.
 
-**`packages/twitter/tests/` or `packages/mcp/tests/` fail with collection errors**
+**Coverage gate used by CI**
 
-These packages have optional dependencies that may not be installed. Run only the core test suites (core, employees, tools, cli).
+```bash
+uv run pytest packages/*/tests/ -q --tb=short --cov --cov-report=term-missing --cov-fail-under=80
+```
+
+**Ruff or mypy fails even though tests pass**
+
+As of 2026-04-24, full Ruff lint and strict mypy pass locally. If either fails, first run `uv sync --all-extras`, then check [Status Report](status-report.md) for the current expected baseline.
 
 **Pre-commit hook fails with ruff errors**
 
 ```bash
-uv run ruff check packages/ --fix    # auto-fix what's possible
+uv run ruff check packages/ --fix    # auto-fix what's safe
 uv run ruff format packages/         # format
 ```
 
@@ -142,6 +150,8 @@ Gateway running?          → curl $GATEWAY_URL/health
 Gateway token matches?    → AUTOGENESIS_GATEWAY_TOKEN env var
 Twitter API creds valid?  → Check TWITTER_* env vars are set
 ```
+
+Current audit note: [Security Audit](security-audit.md) found that the poster expects a different success field than the gateway returns and calls a status route the gateway does not implement. Fix that contract before treating posting failures as credential-only problems.
 
 **Queue panel not showing in your dashboard**
 
@@ -248,7 +258,11 @@ sqlite3 .autogenesis/employees/{id}/brain.db "DELETE FROM memories_fts; INSERT I
 
 ```bash
 # Test suite
-uv run python -m pytest packages/core/tests/ packages/employees/tests/ packages/tools/tests/ packages/cli/tests/ --tb=short
+uv run pytest packages/*/tests tests -q --tb=short
+
+# Security checks
+uv run ruff check --select S packages/
+uvx pip-audit
 
 # Check all employees
 autogenesis hr list

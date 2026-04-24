@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any, ClassVar, TypeAlias
 
 import structlog
 from textual.app import App, ComposeResult
@@ -26,6 +26,7 @@ from autogenesis_tui.widgets.roster import EmployeeRow
 # to avoid circular dependencies and import-time side effects
 
 logger = structlog.get_logger()
+BindingSpec: TypeAlias = Binding | tuple[str, str] | tuple[str, str, str]
 
 _CEO_SYSTEM_PROMPT = """\
 You are the CEO Orchestrator of AutoGenesis — an autonomous multi-agent software startup.
@@ -66,7 +67,7 @@ class AutogenesisApp(App[None]):
     }
     """
 
-    BINDINGS: ClassVar[list[Binding]] = [
+    BINDINGS: ClassVar[list[BindingSpec]] = [
         Binding("ctrl+g", "new_goal", "New Goal"),
         Binding("ctrl+n", "new_thread", "New Thread"),
         Binding("t", "theme_picker", "Theme", show=False),
@@ -125,8 +126,8 @@ class AutogenesisApp(App[None]):
 
     async def _load_employees(self) -> None:
         try:
-            from autogenesis_core.config import load_config  # noqa: PLC0415
-            from autogenesis_employees.registry import EmployeeRegistry  # noqa: PLC0415
+            from autogenesis_core.config import load_config
+            from autogenesis_employees.registry import EmployeeRegistry
 
             cfg = load_config()
             xdg = os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))
@@ -140,7 +141,7 @@ class AutogenesisApp(App[None]):
                 EmployeeRow(id=e.id, title=e.title, status="idle") for e in registry.list_active()
             ]
             # CEO is always first in the roster, then employees
-            rows = [EmployeeRow(id="CEO", title="CEO Orchestrator", status="active")] + emp_rows
+            rows = [EmployeeRow(id="CEO", title="CEO Orchestrator", status="active"), *emp_rows]
             self.query_one(EmployeeRoster).load(rows)
             targets = [r.id for r in rows]
             self.query_one(InputBar).load_targets(targets)
@@ -149,7 +150,7 @@ class AutogenesisApp(App[None]):
 
     def _subscribe_event_bus(self) -> None:
         try:
-            from autogenesis_core.events import EventType, get_event_bus  # noqa: PLC0415
+            from autogenesis_core.events import EventType, get_event_bus
 
             bus = get_event_bus()
             bus.subscribe(EventType.CEO_SUBTASK_ASSIGN, self._on_subtask_assign)
@@ -241,8 +242,8 @@ class AutogenesisApp(App[None]):
     async def _show_employee_detail(self, emp_id: str) -> None:
         right = self.query_one(RightPanel)
         try:
-            from autogenesis_employees.brain import BrainManager  # noqa: PLC0415
-            from autogenesis_employees.inbox import InboxManager  # noqa: PLC0415
+            from autogenesis_employees.brain import BrainManager
+            from autogenesis_employees.inbox import InboxManager
 
             base_dir = Path.cwd() / ".autogenesis"
             data_dir = base_dir / "employees" / emp_id
@@ -257,7 +258,7 @@ class AutogenesisApp(App[None]):
 
             xdg = os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))
             global_dir = Path(xdg) / "autogenesis" / "employees"
-            from autogenesis_employees.registry import EmployeeRegistry  # noqa: PLC0415
+            from autogenesis_employees.registry import EmployeeRegistry
 
             registry = EmployeeRegistry(global_dir=global_dir)
             emp_config = registry.get(emp_id)

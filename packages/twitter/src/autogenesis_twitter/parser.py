@@ -21,7 +21,8 @@ _MAX_TWEET_TEXT = 500
 def _load_selectors() -> dict[str, Any]:
     """Load selector patterns from config file."""
     with _SELECTORS_PATH.open() as f:
-        return json.load(f)
+        data = json.load(f)
+    return data if isinstance(data, dict) else {}
 
 
 def _compile_injection_patterns(selectors: dict[str, Any]) -> list[re.Pattern[str]]:

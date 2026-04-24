@@ -6,12 +6,22 @@ import re
 from pathlib import Path
 from typing import Any
 
+from autogenesis_security.sandbox import SecurityPolicyError, WorkspacePolicy
+
 from autogenesis_tools.base import Tool
 
 _MAX_READ_BYTES = 1_000_000  # 1MB
 
 
-class FileReadTool(Tool):
+class _WorkspaceToolMixin:
+    def __init__(self, *, workspace_root: str | Path | None = None) -> None:
+        self._workspace = WorkspacePolicy(Path(workspace_root) if workspace_root else Path.cwd())
+
+    def _resolve_path(self, path: str | Path) -> Path:
+        return self._workspace.resolve_path(path)
+
+
+class FileReadTool(_WorkspaceToolMixin, Tool):
     """Read file contents with optional line range."""
 
     @property
@@ -40,7 +50,10 @@ class FileReadTool(Tool):
 
     async def execute(self, arguments: dict[str, Any]) -> str:
         """Read file contents."""
-        path = Path(arguments["path"])
+        try:
+            path = self._resolve_path(arguments["path"])
+        except SecurityPolicyError as exc:
+            return f"Error: {exc}"
         if not path.exists():
             return f"Error: File not found: {path}"
 
@@ -59,7 +72,7 @@ class FileReadTool(Tool):
         return "".join(numbered)
 
 
-class FileWriteTool(Tool):
+class FileWriteTool(_WorkspaceToolMixin, Tool):
     """Write content to a file, creating directories as needed."""
 
     @property
@@ -87,13 +100,16 @@ class FileWriteTool(Tool):
 
     async def execute(self, arguments: dict[str, Any]) -> str:
         """Write content to file."""
-        path = Path(arguments["path"])
+        try:
+            path = self._resolve_path(arguments["path"])
+        except SecurityPolicyError as exc:
+            return f"Error: {exc}"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(arguments["content"])
         return f"Wrote {len(arguments['content'])} chars to {path}"
 
 
-class FileEditTool(Tool):
+class FileEditTool(_WorkspaceToolMixin, Tool):
     """Edit a file by replacing an exact string match."""
 
     @property
@@ -122,7 +138,10 @@ class FileEditTool(Tool):
 
     async def execute(self, arguments: dict[str, Any]) -> str:
         """Replace exact string in file."""
-        path = Path(arguments["path"])
+        try:
+            path = self._resolve_path(arguments["path"])
+        except SecurityPolicyError as exc:
+            return f"Error: {exc}"
         if not path.exists():
             return f"Error: File not found: {path}"
 
@@ -140,7 +159,7 @@ class FileEditTool(Tool):
         return "Edit applied successfully"
 
 
-class GlobTool(Tool):
+class GlobTool(_WorkspaceToolMixin, Tool):
     """Find files matching a glob pattern."""
 
     @property
@@ -168,7 +187,10 @@ class GlobTool(Tool):
 
     async def execute(self, arguments: dict[str, Any]) -> str:
         """Find files matching glob pattern."""
-        base = Path(arguments.get("path", "."))
+        try:
+            base = self._resolve_path(arguments.get("path", "."))
+        except SecurityPolicyError as exc:
+            return f"Error: {exc}"
         pattern = arguments["pattern"]
         matches = sorted(str(p) for p in base.glob(pattern) if p.is_file())
         if not matches:
@@ -176,7 +198,7 @@ class GlobTool(Tool):
         return "\n".join(matches)
 
 
-class GrepTool(Tool):
+class GrepTool(_WorkspaceToolMixin, Tool):
     """Search file contents with regex."""
 
     @property
@@ -205,7 +227,10 @@ class GrepTool(Tool):
 
     async def execute(self, arguments: dict[str, Any]) -> str:
         """Search for regex pattern in files."""
-        path = Path(arguments["path"])
+        try:
+            path = self._resolve_path(arguments["path"])
+        except SecurityPolicyError as exc:
+            return f"Error: {exc}"
         pattern = re.compile(arguments["pattern"])
         ctx = arguments.get("context", 0)
         results: list[str] = []
@@ -233,7 +258,7 @@ class GrepTool(Tool):
         return "\n".join(results[:200])
 
 
-class ListDirTool(Tool):
+class ListDirTool(_WorkspaceToolMixin, Tool):
     """List directory contents."""
 
     @property
@@ -260,7 +285,10 @@ class ListDirTool(Tool):
 
     async def execute(self, arguments: dict[str, Any]) -> str:
         """List directory contents."""
-        path = Path(arguments.get("path", "."))
+        try:
+            path = self._resolve_path(arguments.get("path", "."))
+        except SecurityPolicyError as exc:
+            return f"Error: {exc}"
         depth = arguments.get("depth", 1)
         if not path.is_dir():
             return f"Error: Not a directory: {path}"

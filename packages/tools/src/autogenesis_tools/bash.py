@@ -2,19 +2,57 @@
 
 from __future__ import annotations
 
-import asyncio
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+from autogenesis_security.sandbox import CommandPolicy, SubprocessSandbox
 
 from autogenesis_tools.base import Tool
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 _ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;]*m")
 _DEFAULT_TIMEOUT = 30.0
 _MAX_OUTPUT_CHARS = 2000
+_DEFAULT_ALLOWED_COMMANDS = frozenset(
+    {
+        "cat",
+        "echo",
+        "find",
+        "git",
+        "grep",
+        "head",
+        "ls",
+        "mypy",
+        "pwd",
+        "pytest",
+        "python",
+        "python3",
+        "rg",
+        "ruff",
+        "sed",
+        "sleep",
+        "tail",
+        "uv",
+        "wc",
+    }
+)
 
 
 class BashTool(Tool):
     """Execute shell commands with timeout and output truncation."""
+
+    def __init__(
+        self,
+        *,
+        workspace_root: str | Path | None = None,
+        allowed_commands: frozenset[str] | None = _DEFAULT_ALLOWED_COMMANDS,
+    ) -> None:
+        self._sandbox = SubprocessSandbox(
+            workspace_root=workspace_root,
+            command_policy=CommandPolicy(allowed_commands=allowed_commands),
+        )
 
     @property
     def name(self) -> str:
@@ -44,24 +82,16 @@ class BashTool(Tool):
         command = arguments["command"]
         timeout = float(arguments.get("timeout", _DEFAULT_TIMEOUT))
 
-        try:
-            proc = await asyncio.create_subprocess_shell(
-                command,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.STDOUT,
-            )
-            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=timeout)
-        except TimeoutError:
-            if proc is not None:
-                proc.kill()
-            return f"Error: Command timed out after {timeout}s"
-
-        output = stdout.decode(errors="replace") if stdout else ""
+        output, return_code = await self._sandbox.execute(command, timeout=timeout)
         output = _ANSI_ESCAPE.sub("", output)
 
         if len(output) > _MAX_OUTPUT_CHARS:
             output = output[:_MAX_OUTPUT_CHARS] + f"\n... (truncated, {len(output)} chars total)"
 
-        if proc.returncode != 0:
-            return f"Exit code {proc.returncode}\n{output}"
+        if return_code != 0:
+            if "timed out" in output.lower():
+                return f"Error: Command timed out after {timeout}s"
+            if output.startswith("Security policy denied command:"):
+                return f"Error: {output}"
+            return f"Exit code {return_code}\n{output}"
         return output

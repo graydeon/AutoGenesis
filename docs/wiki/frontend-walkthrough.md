@@ -3,9 +3,9 @@
 **Owner:** `frontend-engineer`
 **Audience:** New hires and engineers touching operator-facing flows
 **Status:** Active
-**Last updated:** 2026-03-19
+**Last updated:** 2026-04-24
 
-AutoGenesis is **CLI-first** today. That means the live frontend is mostly terminal UX, docs, and a small approval/dashboard integration rather than a checked-in React application. Frontend ownership here is still real: we own how operators enter the system, understand state, recover from failures, and move through approval-heavy workflows without confusion.
+AutoGenesis is **CLI-first** today, with a checked-in Textual TUI (`autogenesis tui`) for command-center workflows. There is still no checked-in React/web frontend. Frontend ownership here is still real: we own how operators enter the system, understand state, recover from failures, and move through approval-heavy workflows without confusion.
 
 ## Frontend Stack Today
 
@@ -13,12 +13,13 @@ AutoGenesis is **CLI-first** today. That means the live frontend is mostly termi
 |---|---|---|---|
 | Command shell | Typer | `packages/cli/src/autogenesis_cli/app.py`, `commands/*.py` | Command structure, help text, argument ergonomics, and workflow entry points |
 | Terminal rendering | Rich | `packages/cli/src/autogenesis_cli/display.py`, `live_display.py` | Streaming text, tool call previews, approval prompts, tables, and live orchestration feedback |
+| TUI command center | Textual | `packages/tui/src/autogenesis_tui/` | Roster navigation, live streams, goals/tokens panel, theme picker |
 | Documentation UX | Markdown docs | `README.md`, `HANDOFF.md`, `docs/wiki/*` | Onboarding, discoverability, operator confidence, and recovery guidance |
 | Auth/browser handoff | Codex CLI login today; host PKCE flow in design docs | `packages/cli/src/autogenesis_cli/commands/login.py` | Browser-based auth and the main browser jump in the core product flow |
 | Human approval surface | Twitter queue panel (external dashboard or custom UI) | `docs/wiki/twitter-agent.md`, `docs/wiki/troubleshooting.md` | Review, edit, approve, or reject queued public posts |
 | Durable UI state | SQLite + markdown + config | `.autogenesis/`, `$XDG_STATE_HOME`, `.autogenesis/config.yaml` | Inspectable plans, queues, memory, inboxes, config, and status |
 
-> There is **no checked-in React/TypeScript app in this repo yet**. If a web surface is added later, it should wrap these existing boundaries instead of inventing a parallel source of truth.
+> There is **no checked-in React/TypeScript app in this repo yet**. If a web surface is added later, it should wrap the existing CLI/TUI boundaries instead of inventing a parallel source of truth.
 
 ## Preferred Direction for Future GUI Work
 

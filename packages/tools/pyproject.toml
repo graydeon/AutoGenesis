@@ -6,6 +6,7 @@ requires-python = ">=3.11"
 license = "MIT"
 dependencies = [
     "autogenesis-core",
+    "autogenesis-security",
 ]
 
 [project.optional-dependencies]

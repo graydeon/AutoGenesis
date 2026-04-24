@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import aiosqlite
 import structlog
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
 from autogenesis_employees.models import InboxMessage
@@ -98,7 +99,7 @@ class InboxManager:
         )
         await db.commit()
 
-    def _row_to_message(self, row: tuple) -> InboxMessage:
+    def _row_to_message(self, row: Sequence[Any]) -> InboxMessage:
         return InboxMessage(
             id=row[0],
             from_employee=row[1],

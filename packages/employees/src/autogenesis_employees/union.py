@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import aiosqlite
 import structlog
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
 from autogenesis_employees.models import Proposal, Vote
@@ -47,7 +48,7 @@ class UnionManager:
         self._db: aiosqlite.Connection | None = None
 
     async def initialize(self) -> None:
-        self._db_path.parent.mkdir(parents=True, exist_ok=True)  # type: ignore[union-attr]
+        self._db_path.parent.mkdir(parents=True, exist_ok=True)
         self._db = await aiosqlite.connect(self._db_path)
         await self._db.execute(_CREATE_PROPOSALS)
         await self._db.execute(_CREATE_VOTES)
@@ -135,7 +136,7 @@ class UnionManager:
         )
         await db.commit()
 
-    def _row_to_proposal(self, row: tuple) -> Proposal:
+    def _row_to_proposal(self, row: Sequence[Any]) -> Proposal:
         return Proposal(
             id=row[0],
             title=row[1],

@@ -4,7 +4,7 @@
 **Audience:** AutoGenesis employees attending orientation
 **Session slot:** `0:05–0:13` in [Onboarding Plan](onboarding-plan.md)
 **Status:** Active
-**Last updated:** 2026-03-19
+**Last updated:** 2026-04-24
 
 This is the CTO's live orientation segment for aligning the team on company mission, product architecture, team interfaces, engineering standards, and near-term technical priorities. Use it with the [Welcome Packet](onboarding-packet.md), [Architecture](architecture.md), [Employee System](employee-system.md), and [Handoff](../../HANDOFF.md).
 
@@ -105,7 +105,7 @@ The product only works when handoffs are crisp. Every team interface needs a cle
 1. **Clarify before building.** Ask questions when requirements, risks, or constraints are ambiguous.
 2. **Prefer the simplest design that survives reality.** Use straightforward systems before adding cleverness.
 3. **Keep state inspectable.** Favor markdown, SQLite, and explicit configs over opaque behavior.
-4. **Protect trust boundaries.** Secrets stay on the host, public actions require approval, and risky behavior must be obvious.
+4. **Protect trust boundaries.** Secrets stay on the host, public actions require approval, and risky behavior must be obvious. The 2026-04-24 security audit now treats subprocess defaults, tool boundaries, and the Twitter gateway contract as mitigated, with guardrail/audit integration still open.
 5. **Ship with verification.** Code changes should come with tests, reproducible commands, or documented validation.
 6. **Document as part of the work.** If behavior, ownership, or workflow changed, the docs should change too.
 7. **Escalate fast.** Do not hide failures; make retry, pause, and human intervention normal parts of execution.

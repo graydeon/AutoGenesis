@@ -6,13 +6,14 @@ Atomic reads/writes for concurrent access from agent, dashboard, and CLI.
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import aiosqlite
 
 from autogenesis_twitter.models import QueueItem, TweetData
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
 _CREATE_TABLE = """
@@ -145,7 +146,7 @@ class QueueManager:
         )
         await db.commit()
 
-    def _row_to_item(self, row: tuple) -> QueueItem:
+    def _row_to_item(self, row: Sequence[Any]) -> QueueItem:
         """Convert a database row to a QueueItem."""
         reply_json = row[4]
         in_reply_to = TweetData.model_validate_json(reply_json) if reply_json else None

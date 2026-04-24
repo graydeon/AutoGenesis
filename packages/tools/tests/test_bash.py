@@ -15,7 +15,10 @@ class TestBashTool:
 
     async def test_returns_exit_code_on_failure(self):
         tool = BashTool()
-        tc = ToolCall(name="bash", arguments={"command": "exit 42"})
+        tc = ToolCall(
+            name="bash",
+            arguments={"command": "python3 -c 'import sys; sys.exit(42)'"},
+        )
         result = await tool(tc)
         assert "Exit code 42" in result
 
@@ -38,6 +41,18 @@ class TestBashTool:
         tc = ToolCall(name="bash", arguments={"command": "python3 -c \"print('x' * 5000)\""})
         result = await tool(tc)
         assert "truncated" in result.lower()
+
+    async def test_denies_unapproved_command(self):
+        tool = BashTool()
+        tc = ToolCall(name="bash", arguments={"command": "sh -c 'echo unsafe'"})
+        result = await tool(tc)
+        assert "security policy" in result.lower()
+
+    async def test_runs_inside_workspace_root(self, tmp_path):
+        tool = BashTool(workspace_root=tmp_path)
+        tc = ToolCall(name="bash", arguments={"command": "pwd"})
+        result = await tool(tc)
+        assert str(tmp_path) in result
 
     async def test_tool_definition(self):
         tool = BashTool()

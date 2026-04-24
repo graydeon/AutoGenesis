@@ -19,6 +19,18 @@ class TestSubAgentResult:
 
 
 class TestSubAgentManager:
+    def test_codex_args_default_to_approval_and_sandbox(self):
+        mgr = SubAgentManager()
+        cmd = mgr._build_cmd_args("do work", None)
+        assert "--dangerously-bypass-approvals-and-sandbox" not in cmd
+        assert 'approval_policy="on-request"' in cmd
+        assert 'sandbox_mode="workspace-write"' in cmd
+
+    def test_codex_args_allow_explicit_unsafe_bypass(self):
+        mgr = SubAgentManager(unsafe_bypass=True)
+        cmd = mgr._build_cmd_args("do work", None)
+        assert "--dangerously-bypass-approvals-and-sandbox" in cmd
+
     async def test_spawn_returns_result(self):
         """Spawn a simple echo command as sub-agent."""
         mgr = SubAgentManager(codex_binary="echo")

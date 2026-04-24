@@ -1,11 +1,11 @@
 # AutoGenesis Onboarding Orientation Runbook
 
 **Owner:** `cto`
-**Supports:** AutoGenesis employee orientation on **Tuesday, March 24, 2026, 10:00–11:00 AM Central Time**
+**Supports:** Historical AutoGenesis employee orientation on **Tuesday, March 24, 2026, 10:00–11:00 AM Central Time**; update date/time before reuse
 **Planning DRI:** `product-manager`
 **Notes owner:** `technical-writer`
 
-This runbook is the live facilitation guide for the March 24 orientation. It keeps the meeting tight, makes the role-by-role introductions predictable, and protects the final 10 minutes for Q&A plus immediate blocker triage.
+This runbook is the historical facilitation guide for the March 24 orientation. For the next cohort, refresh the date/time and use the same structure to keep the meeting tight, make role-by-role introductions predictable, and protect the final 10 minutes for Q&A plus immediate blocker triage.
 
 Primary presenter material for the CTO segment: [CTO Orientation Segment](cto-orientation-segment.md).
 
@@ -20,9 +20,9 @@ Live notes template: [Onboarding Orientation Notes Template](onboarding-orientat
 | Notes owner | `technical-writer` | Capture notes, decisions, open blockers, owners, and links to follow-up artifacts |
 | Timebox support | `product-manager` | Give 1-minute warnings so handoffs stay on schedule |
 
-## Success Criteria for the Live Session
+## Historical Success Criteria for the Live Session
 
-By 11:00 AM Central Time on **Tuesday, March 24, 2026**, the team should have:
+For the March 2026 orientation, by 11:00 AM Central Time on **Tuesday, March 24, 2026**, the team should have:
 
 1. Met every active employee and heard each person's role, current priority, and one question or blocker.
 2. Confirmed who owns each core onboarding area: product, architecture, docs, infra, security, quality, and public communications.
@@ -108,7 +108,7 @@ Use a short close so the meeting ends with explicit ownership:
 
 1. `technical-writer` reads back the open blockers and owners.
 2. `product-manager` states the next checkpoint and where notes will live.
-3. `cto` closes with: “If you still have an unresolved blocker after this call, raise it today, March 24, 2026, and tag the named owner. We optimize for fast escalation, not silent waiting.”
+3. `cto` closes with: “If you still have an unresolved blocker after this call, raise it today and tag the named owner. We optimize for fast escalation, not silent waiting.”
 
 ## After the Meeting
 

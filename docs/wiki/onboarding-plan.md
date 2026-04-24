@@ -1,11 +1,11 @@
 # Employee Onboarding Plan
 
 **Owner:** `product-manager`
-**Status:** Scheduled for **Tuesday, March 24, 2026, 10:00–11:00 AM Central Time**
+**Status:** Historical plan from the March 2026 orientation; copy and update dates for the next cohort
 **Roster source:** active employee configs in `~/.config/autogenesis/employees/`
-**Roster validation:** `uv run autogenesis hr list` confirmed **9 active employees** on **2026-03-19**. No project override YAMLs were present in `.autogenesis/employees/`.
+**Roster validation:** `uv run autogenesis hr list` confirmed **9 active employees** on **2026-03-19**. No project override YAMLs were present in `.autogenesis/employees/`. Re-run validation before scheduling a future onboarding.
 
-## Orientation Logistics
+## Historical Orientation Logistics
 
 - **Session:** AutoGenesis employee orientation
 - **Date:** Tuesday, March 24, 2026
@@ -37,9 +37,9 @@ All 9 active employees are required and confirmed for the orientation.
 | `qa-engineer` | QA / Test Engineer | Confirmed | Dry-run the onboarding flow and report gaps before the session |
 | `social-media-manager` | Social Media Manager | Confirmed | Explain brand voice, announcement norms, and public escalation paths |
 
-## Required Pre-Work
+## Historical Required Pre-Work
 
-Complete all shared and role-specific pre-work by **Monday, March 23, 2026, 5:00 PM Central Time**.
+For the March 2026 cohort, all shared and role-specific pre-work was due by **Monday, March 23, 2026, 5:00 PM Central Time**. For the next cohort, copy this checklist and set fresh due dates before publishing.
 
 ### Shared for all employees
 
@@ -49,11 +49,11 @@ Complete all shared and role-specific pre-work by **Monday, March 23, 2026, 5:00
 4. Read `docs/wiki/architecture.md` and `docs/wiki/employee-system.md`.
 5. Run `uv sync --all-packages` and `uv run autogenesis hr list`, then confirm access to the repository, terminal environment, docs, chat, calendar, and shared drives.
 6. Prepare a 30–60 second introduction: role, focus area, current priority, and one question or blocker.
-7. Submit any missing-access or setup blockers before end of day on **Monday, March 23, 2026**.
+7. Submit any missing-access or setup blockers before the cohort-specific pre-work deadline.
 
 ### Role-specific
 
-- `product-manager`: send the calendar invite for **Tuesday, March 24, 2026, 10:00–11:00 AM CT**, finalize the agenda, set the intro order, and prepare the follow-up tracker.
+- `product-manager`: send the calendar invite, finalize the agenda, set the intro order, and prepare the follow-up tracker.
 - `technical-writer`: publish the packet, notes template, and link hub; confirm note-taking coverage.
 - `devops-engineer`: complete the access matrix and verify all shared systems.
 - `security-engineer`: publish the mandatory security onboarding module plus the day-one checklist and escalation paths.
@@ -92,7 +92,7 @@ Complete all shared and role-specific pre-work by **Monday, March 23, 2026, 5:00
 | 0:42–0:50 | CTO-led round-robin introductions (30–60 seconds each) | All employees |
 | 0:50–1:00 | Q&A, immediate blockers, owners, and close | CTO / Product Manager + Technical Writer |
 
-Use the [Onboarding Orientation Runbook](onboarding-orientation-runbook.md) for the exact live host script, intro order, and segment handoffs for **Tuesday, March 24, 2026**.
+Use the [Onboarding Orientation Runbook](onboarding-orientation-runbook.md) for the historical March 2026 host script, intro order, and segment handoffs. Refresh the dates and host cues before reusing it for a future cohort.
 
 Backend onboarding reference: [Backend Walkthrough](backend-walkthrough.md).
 

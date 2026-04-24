@@ -11,7 +11,16 @@ from autogenesis_twitter.poster import TwitterPoster
 class TestTwitterPoster:
     async def test_post_tweet_success(self):
         poster = TwitterPoster(gateway_url="http://localhost:1456", gateway_token="test_token")  # noqa: S106
-        mock_response = httpx.Response(200, json={"id": "12345", "status": "posted"})
+        mock_response = httpx.Response(200, json={"id": "12345", "success": True})
+        with patch.object(poster._http, "post", new_callable=AsyncMock, return_value=mock_response):
+            result = await poster.post_tweet("hello world")
+            assert result.success is True
+            assert result.tweet_id == "12345"
+        await poster.close()
+
+    async def test_post_tweet_accepts_legacy_tweet_id(self):
+        poster = TwitterPoster(gateway_url="http://localhost:1456", gateway_token="test_token")  # noqa: S106
+        mock_response = httpx.Response(200, json={"tweet_id": "12345", "success": True})
         with patch.object(poster._http, "post", new_callable=AsyncMock, return_value=mock_response):
             result = await poster.post_tweet("hello world")
             assert result.success is True
@@ -20,7 +29,7 @@ class TestTwitterPoster:
 
     async def test_post_reply_success(self):
         poster = TwitterPoster(gateway_url="http://localhost:1456", gateway_token="test_token")  # noqa: S106
-        mock_response = httpx.Response(200, json={"id": "12346", "status": "posted"})
+        mock_response = httpx.Response(200, json={"id": "12346", "success": True})
         with patch.object(poster._http, "post", new_callable=AsyncMock, return_value=mock_response):
             result = await poster.post_tweet("great take", reply_to_id="99999")
             assert result.success is True

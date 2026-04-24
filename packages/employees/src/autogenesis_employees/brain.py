@@ -7,12 +7,13 @@ Memories decay in relevance over time; accessed memories get boosted.
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import aiosqlite
 import structlog
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
 from autogenesis_employees.models import Memory
@@ -164,7 +165,7 @@ class BrainManager:
         logger.info("brain_pruned", removed=to_remove)
         return to_remove
 
-    def _row_to_memory(self, row: tuple) -> Memory:
+    def _row_to_memory(self, row: Sequence[Any]) -> Memory:
         return Memory(
             id=row[0],
             category=row[1],

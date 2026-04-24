@@ -145,9 +145,10 @@ jobs:
 
       - name: Build all packages
         run: |
-          for pkg in packages/*/; do
-            echo "::group::Building ${pkg}"
-            uv build --package "$(basename "${pkg}")" --out-dir dist/
+          for pkg in packages/*/pyproject.toml; do
+            pkg_name=$(python3 -c "import tomllib; print(tomllib.load(open('$pkg','rb'))['project']['name'])")
+            echo "::group::Building ${pkg_name}"
+            uv build --package "${pkg_name}" --out-dir dist/
             echo "::endgroup::"
           done
 

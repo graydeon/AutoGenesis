@@ -2,8 +2,8 @@
 
 **Owner:** `technical-writer`
 **Audience:** `product-manager`, meeting host, and note-taker
-**Status:** Ready pending confirmed date/time
-**Last updated:** 2026-03-19
+**Status:** Template; March 2026 orientation copy is archived
+**Last updated:** 2026-04-24
 
 This bundle converts the [Onboarding Plan](onboarding-plan.md) into copy-ready scheduling assets. Fill in the placeholders after the Product Manager confirms the orientation date, time, timezone, and meeting link.
 

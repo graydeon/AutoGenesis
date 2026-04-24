@@ -1,6 +1,6 @@
 # AutoGenesis
 
-**Autonomous agent harness powered by OpenAI Codex. Employee-based multi-agent system with persistent memory, inter-agent messaging, and CEO orchestration.**
+**Autonomous agent harness powered by OpenAI Codex. Employee-based multi-agent system with persistent memory, inter-agent messaging, a TUI command center, and CEO orchestration.**
 
 ---
 
@@ -55,7 +55,7 @@ AutoGenesis models a **software startup** where AI agents are employees:
 4. **Adaptation** — After each subtask, CEO re-evaluates the plan based on results
 5. **Retry + escalation** — One retry on failure with context, then escalates to human
 
-### Three Integrated Systems
+### Integrated Systems
 
 | System | Purpose |
 |--------|---------|
@@ -63,6 +63,7 @@ AutoGenesis models a **software startup** where AI agents are employees:
 | **Employee System** | 9 named roles with brain.db memory, inboxes, changelog, meetings, union |
 | **GitNexus Context Layer** | Auto-index per repository, then inject focused code-flow context to reduce exploratory token spend |
 | **Twitter Agent** | Autonomous persona: browse → draft → queue → human approve → post |
+| **TUI Command Center** | Textual interface for roster navigation, live streams, goals, token status, and themes |
 
 ## Architecture
 
@@ -71,6 +72,11 @@ packages/
   core/        Agent loop, Codex client, auth, config, events, credentials
   employees/   Registry, runtime, brain, inbox, changelog, meetings, union, HR, CEO orchestrator
   tools/       8 built-in tools with progressive disclosure
+  security/    Guardrails, allowlist, audit logging, scanner, sandbox primitives
+  tokens/      Budget, cache, compression, reporter, deferred token counter
+  mcp/         MCP client/server/registry
+  plugins/     Plugin interface and loader
+  tui/         Textual command center
   twitter/     Browser, poster, queue, guardrails, worldview, scheduler, gateway
   cli/         All CLI commands (ceo, hr, twitter, meeting, standup, union)
 ```
@@ -80,6 +86,8 @@ packages/
 | Doc | What it covers |
 |-----|---------------|
 | [HANDOFF.md](HANDOFF.md) | Project overview, current state, quick commands |
+| [Status Report](docs/wiki/status-report.md) | Current local/GitHub validation, CI state, and next priorities |
+| [Security Audit](docs/wiki/security-audit.md) | Security findings, verification results, and hardening roadmap |
 | [Architecture](docs/wiki/architecture.md) | Package map, key classes, data flow, databases |
 | [CLI Reference](docs/wiki/cli-reference.md) | All commands with examples |
 | [Employee System](docs/wiki/employee-system.md) | Roles, brain, inbox, HR, meetings, union |
@@ -91,16 +99,26 @@ packages/
 ## Development
 
 ```bash
-# Run tests (223 passing)
-uv run python -m pytest packages/core/tests/ packages/employees/tests/ packages/tools/tests/ packages/cli/tests/ -v
+# Run the full package test suite (457 passing as of 2026-04-24)
+uv run pytest packages/*/tests tests -q --tb=short
 
-# Lint + format
-uv run ruff check packages/ --fix
-uv run ruff format packages/
+# Coverage gate used by CI
+uv run pytest packages/*/tests/ -q --tb=short --cov --cov-report=term-missing --cov-fail-under=80
+
+# Lint, format, and type check
+uv run ruff check packages/
+uv run ruff format --check packages/
+uv run mypy packages/
+
+# Security checks
+uv run ruff check --select S packages/
+uvx pip-audit
 
 # Conventional commits
 git commit -m "feat(ceo): add goal decomposition"
 ```
+
+Current status: tests, coverage, full Ruff lint, strict mypy, security lint, dependency audit, and package builds pass locally. See the [Status Report](docs/wiki/status-report.md).
 
 ## License
 

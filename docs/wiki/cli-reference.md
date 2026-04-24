@@ -1,5 +1,7 @@
 # CLI Reference
 
+**Last updated:** 2026-04-24
+
 All commands: `uv run autogenesis <command>`
 
 ## Top-Level
@@ -10,6 +12,7 @@ All commands: `uv run autogenesis <command>`
 | `logout` | Clear stored credentials |
 | `run "prompt"` | Single-shot agent task |
 | `chat` | Interactive chat session |
+| `tui` | Launch the Textual command center |
 | `config show` | Print resolved config |
 | `project init [PATH]` | Bootstrap `.autogenesis/config.yaml` + GitNexus index |
 
@@ -75,13 +78,30 @@ autogenesis hr fire intern
 | `twitter stop` | Instructions for stopping |
 | `twitter status` | Active window, queue counts, config |
 | `twitter queue` | List pending tweet drafts |
-| `twitter interview` | Persona interview (not yet wired) |
+| `twitter interview` | Persona interview workflow |
 
 ### Gateway (separate process)
 
 ```bash
 python -m autogenesis_twitter.gateway --gateway-token <token>
 # Listens on configurable host/port, loads Twitter API creds from env vars
+```
+
+Current audit note: the gateway/poster contract is covered by local auth/schema tests. Run a controlled real-API smoke test before relying on public posting. See [Security Audit](security-audit.md).
+
+## TUI (`tui`)
+
+| Command | Description |
+|---------|-------------|
+| `tui` | Launch the Textual command center |
+| `tui --theme THEME` | Launch with a built-in or user theme |
+
+### Examples
+
+```bash
+autogenesis tui
+autogenesis tui --theme dracula
+autogenesis tui --theme hacker-green
 ```
 
 ## Meetings

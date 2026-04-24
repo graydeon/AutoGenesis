@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Any
 import structlog
 from autogenesis_core.events import Event, EventType, get_event_bus
 
+from autogenesis_employees.brain import BrainManager
 from autogenesis_employees.ceo_models import (
     GoalResult,
     GoalStatus,
@@ -23,14 +24,13 @@ from autogenesis_employees.ceo_models import (
     TaskResult,
     TaskStatus,
 )
+from autogenesis_employees.changelog import ChangelogManager
+from autogenesis_employees.inbox import InboxManager
 from autogenesis_employees.reasoning import (
     build_assign_prompt,
     build_decompose_prompt,
     extract_json,
 )
-from autogenesis_employees.brain import BrainManager
-from autogenesis_employees.changelog import ChangelogManager
-from autogenesis_employees.inbox import InboxManager
 from autogenesis_employees.state import CEOStateManager
 
 if TYPE_CHECKING:
@@ -344,7 +344,7 @@ class CEOOrchestrator:
             previous_results=[],
         )
         assign_result = await self._codex_call_json(instructions, message, label="ceo:assign")
-        employee_id = assign_result.get("employee_id", "")
+        employee_id = str(assign_result.get("employee_id", ""))
         if not self._registry.get(employee_id):
             employee_id = self._registry.list_active()[0].id
         return employee_id

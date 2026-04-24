@@ -1,7 +1,7 @@
 # AutoGenesis Orientation Notes Template
 
 **Owner:** `technical-writer`
-**Use for:** AutoGenesis employee orientation on **Tuesday, March 24, 2026, 10:00–11:00 AM Central Time**
+**Use for:** AutoGenesis employee orientation notes; March 24, 2026 timing is historical and should be refreshed before reuse
 **Live host:** `cto`
 **Planning DRI:** `product-manager`
 

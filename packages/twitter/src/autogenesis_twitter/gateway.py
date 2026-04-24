@@ -19,6 +19,8 @@ from urllib.request import Request, urlopen
 logger = logging.getLogger(__name__)
 
 TWITTER_API_BASE = "https://api.twitter.com/2"
+_MAX_REQUEST_BYTES = 8_192
+_MAX_TWEET_CHARS = 280
 
 
 class GatewayHandler(BaseHTTPRequestHandler):
@@ -26,10 +28,11 @@ class GatewayHandler(BaseHTTPRequestHandler):
 
     gateway_token: str = ""
     bearer_token: str = ""
+    allow_unauthenticated: bool = False
 
     def _check_auth(self) -> bool:
         if not self.gateway_token:
-            return True
+            return self.allow_unauthenticated
         auth = self.headers.get("Authorization", "")
         return auth == f"Bearer {self.gateway_token}"
 
@@ -42,6 +45,18 @@ class GatewayHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         if self.path == "/health":
             self._send_json(200, {"status": "ok"})
+        elif self.path == "/twitter/status":
+            if not self._check_auth():
+                self._send_json(401, {"error": "unauthorized"})
+                return
+            self._send_json(
+                200,
+                {
+                    "status": "ok",
+                    "authenticated": bool(self.bearer_token),
+                    "twitter_api_configured": bool(self.bearer_token),
+                },
+            )
         else:
             self._send_json(404, {"error": "not found"})
 
@@ -51,18 +66,45 @@ class GatewayHandler(BaseHTTPRequestHandler):
         else:
             self._send_json(404, {"error": "not found"})
 
+    def _read_json_body(self) -> dict[str, Any] | None:
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+        except ValueError:
+            self._send_json(400, {"error": "invalid content length"})
+            return None
+        if content_length > _MAX_REQUEST_BYTES:
+            self._send_json(413, {"error": "request body too large"})
+            return None
+        if content_length == 0:
+            return {}
+
+        raw_body = self.rfile.read(content_length)
+        try:
+            body = json.loads(raw_body)
+        except json.JSONDecodeError:
+            self._send_json(400, {"error": "invalid json"})
+            return None
+        if not isinstance(body, dict):
+            self._send_json(400, {"error": "json body must be an object"})
+            return None
+        return body
+
     def _handle_tweet(self) -> None:
         if not self._check_auth():
             self._send_json(401, {"error": "unauthorized"})
             return
 
-        content_length = int(self.headers.get("Content-Length", 0))
-        body = json.loads(self.rfile.read(content_length)) if content_length else {}
+        body = self._read_json_body()
+        if body is None:
+            return
 
         text = body.get("text", "")
         reply_to = body.get("reply_to_id")
-        if not text:
+        if not isinstance(text, str) or not text.strip():
             self._send_json(400, {"error": "text is required"})
+            return
+        if len(text) > _MAX_TWEET_CHARS:
+            self._send_json(400, {"error": "text exceeds 280 characters"})
             return
 
         payload: dict[str, Any] = {"text": text}
@@ -82,7 +124,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
             resp = urlopen(req, timeout=30)  # noqa: S310
             result = json.loads(resp.read())
             tweet_id = result.get("data", {}).get("id", "")
-            self._send_json(200, {"success": True, "tweet_id": tweet_id})
+            self._send_json(200, {"success": True, "id": tweet_id, "tweet_id": tweet_id})
         except HTTPError as e:
             error_body = e.read().decode() if e.fp else str(e)
             logger.exception("twitter_api_error: status=%s body=%s", e.code, error_body)
@@ -104,11 +146,17 @@ def build_gateway_server(  # noqa: PLR0913
     access_secret: str = "",
     bearer_token: str = "",
     gateway_token: str = "",
+    *,
+    allow_unauthenticated: bool = False,
 ) -> HTTPServer:
     """Build and return a gateway HTTP server (not started)."""
+    if not gateway_token and not allow_unauthenticated:
+        msg = "gateway_token is required unless allow_unauthenticated is enabled"
+        raise ValueError(msg)
     server = HTTPServer((host, port), GatewayHandler)
     GatewayHandler.gateway_token = gateway_token
     GatewayHandler.bearer_token = bearer_token
+    GatewayHandler.allow_unauthenticated = allow_unauthenticated
     # Store OAuth1 creds on server for future OAuth1.0a signing
     server.api_key = api_key  # type: ignore[attr-defined]
     server.api_secret = api_secret  # type: ignore[attr-defined]
@@ -126,6 +174,7 @@ if __name__ == "__main__":
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=1456)
     parser.add_argument("--gateway-token", default="")
+    parser.add_argument("--allow-unauthenticated", action="store_true")
     args = parser.parse_args()
 
     srv = build_gateway_server(
@@ -136,7 +185,8 @@ if __name__ == "__main__":
         access_token=os.environ.get("TWITTER_ACCESS_TOKEN", ""),
         access_secret=os.environ.get("TWITTER_ACCESS_SECRET", ""),
         bearer_token=os.environ.get("TWITTER_BEARER_TOKEN", ""),
-        gateway_token=args.gateway_token,
+        gateway_token=args.gateway_token or os.environ.get("AUTOGENESIS_TWITTER_GATEWAY_TOKEN", ""),
+        allow_unauthenticated=args.allow_unauthenticated,
     )
     sys.stdout.write(f"Twitter Gateway listening on {args.host}:{args.port}\n")
     sys.stdout.flush()

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, TypeAlias
 
 from textual.binding import Binding
 from textual.message import Message
@@ -11,6 +11,8 @@ from textual.widgets import Input, Static
 if TYPE_CHECKING:
     from textual.app import ComposeResult
     from textual.events import Click, Key
+
+BindingSpec: TypeAlias = Binding | tuple[str, str] | tuple[str, str, str]
 
 
 class InputBar(Widget):
@@ -35,7 +37,7 @@ class InputBar(Widget):
     }
     """
 
-    BINDINGS: ClassVar[list[Binding]] = [
+    BINDINGS: ClassVar[list[BindingSpec]] = [
         Binding("ctrl+space", "toggle_target_menu", "Switch target", show=False),
     ]
 

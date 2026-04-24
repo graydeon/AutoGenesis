@@ -2,20 +2,27 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol
 
 import structlog
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
+
     from autogenesis_mcp.client import MCPClient
 
 logger = structlog.get_logger()
 
 
+class MCPRegistryConfig(Protocol):
+    allowlist: Sequence[str]
+    servers: Mapping[str, dict[str, Any]]
+
+
 class MCPRegistry:
     """Registry of MCP servers with allowlist enforcement and connection pooling."""
 
-    def __init__(self, config: object = None) -> None:
+    def __init__(self, config: MCPRegistryConfig | None = None) -> None:
         self._allowlist: set[str] = set()
         self._servers: dict[str, dict[str, Any]] = {}
         self._clients: dict[str, MCPClient] = {}
