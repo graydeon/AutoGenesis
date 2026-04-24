@@ -98,7 +98,13 @@ jobs:
         run: uv sync --all-extras
 
       - name: Run integration tests
-        run: uv run pytest tests/integration/ -v
+        run: |
+          if [ -d "tests/integration" ] && find tests/integration -type f \( -name "test_*.py" -o -name "*_test.py" \) | grep -q .; then
+            uv run pytest tests/integration/ -v
+          else
+            echo "::warning::No integration tests found — skipping."
+            echo "Create tests/integration/test_*.py to enable integration coverage."
+          fi
 
   security-check:
     name: Security Check
@@ -121,7 +127,7 @@ jobs:
         run: uv sync --all-extras
 
       - name: Dependency vulnerability scan
-        run: uv run pip-audit
+        run: uvx pip-audit
 
       - name: Bandit security lint (via ruff)
         run: uv run ruff check --select S packages/
@@ -157,7 +163,7 @@ jobs:
           uv venv /tmp/test-venv
           for whl in dist/*.whl; do
             echo "Installing ${whl}..."
-            /tmp/test-venv/bin/pip install "${whl}" --force-reinstall --no-deps
+            uv pip install --python /tmp/test-venv/bin/python "${whl}" --force-reinstall --no-deps
           done
 
   # ---------- nightly-only jobs ----------

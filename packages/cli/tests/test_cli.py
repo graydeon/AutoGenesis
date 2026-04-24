@@ -2,10 +2,17 @@
 
 from __future__ import annotations
 
+import re
+
 from autogenesis_cli.app import app
 from typer.testing import CliRunner
 
 runner = CliRunner()
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _plain_output(output: str) -> str:
+    return _ANSI_RE.sub("", output)
 
 
 class TestCLIHelp:
@@ -29,8 +36,9 @@ class TestRunCommand:
     def test_run_help(self):
         result = runner.invoke(app, ["run", "--help"])
         assert result.exit_code == 0
-        assert "full-auto" in result.output
-        assert "model" in result.output
+        output = _plain_output(result.output)
+        assert "full-auto" in output
+        assert "model" in output
 
     def test_run_without_prompt_fails(self):
         result = runner.invoke(app, ["run"], input="")
@@ -41,7 +49,7 @@ class TestLoginCommand:
     def test_login_help(self):
         result = runner.invoke(app, ["login", "--help"])
         assert result.exit_code == 0
-        assert "device-code" in result.output
+        assert "device-code" in _plain_output(result.output)
 
 
 class TestLogoutCommand:
@@ -58,8 +66,9 @@ class TestChatCommand:
     def test_chat_help(self):
         result = runner.invoke(app, ["chat", "--help"])
         assert result.exit_code == 0
-        assert "full-auto" in result.output
-        assert "model" in result.output
+        output = _plain_output(result.output)
+        assert "full-auto" in output
+        assert "model" in output
 
     def test_chat_exits_on_exit(self):
         result = runner.invoke(app, ["chat"], input="exit\n")
